@@ -18,7 +18,7 @@ import { setSound, sound, moktak, bowl, coin, bigBell, sfx, setAmbience, TRACKS,
 import { buildCampsite, buildShore, SHELTERS, shelterOf } from './camp.js';
 import { addPhoto, listPhotos, removePhoto } from './album.js';
 import { launchFirework, stepFireworks, addToDex, renderDex, loadDex } from './fun.js';
-import { daylight, applyDaylight } from './daytime.js';
+import { daylight, applyDaylight, glow, dayPart } from './daytime.js';
 
 const $ = (s) => document.querySelector(s);
 const params = new URLSearchParams(location.search);
@@ -267,7 +267,7 @@ function setWorld(world) {
   scene.add(world.group);
   scene.fog = world.fog;
   scene.background = world.background;
-  scene.environmentIntensity = ENV * applyDaylight(world, dayNow());
+  scene.environmentIntensity = ENV * applyDaylight(world, dayNow(), glowNow());
   world.campfire?.userData.setLit(dayNow() < 0.5);
   setAmbience(ambienceFor());
 }
@@ -282,7 +282,8 @@ function ambienceFor() {
 // 낮과 밤: 30초마다 한국의 해 뜨고 지는 시각에 맞춰 다시 칠한다
 // 카바나 · 별밤은 늘 밤
 const dayNow = () => (S.loc?.night ? 0 : daylight());
-setInterval(() => { if (S.active) { scene.environmentIntensity = ENV * applyDaylight(S.active, dayNow()); S.active.campfire?.userData.setLit(dayNow() < 0.5); setAmbience(ambienceFor()); } }, 30000);
+const glowNow = () => (S.loc?.night ? { morning: 0, evening: 0 } : glow());
+setInterval(() => { if (S.active) { scene.environmentIntensity = ENV * applyDaylight(S.active, dayNow(), glowNow()); S.active.campfire?.userData.setLit(dayNow() < 0.5); setAmbience(ambienceFor()); } }, 30000);
 
 // 정각마다 범종 한 번 (소리를 켠 분만 들려요)
 let bellHour = null;
@@ -957,7 +958,7 @@ function updateTimer(dt) {
   if (timerTick < 1) return;
   timerTick = 0;
   const now = new Date();
-  $('#hud-timer').innerHTML = `<b>${pad(now.getHours())}:${pad(now.getMinutes())}</b><small>머문 시간 ${fmtTime((Date.now() - S.enteredAt) / 1000)}</small>`;
+  $('#hud-timer').innerHTML = `<b>${S.loc?.night ? '별밤' : dayPart()} ${pad(now.getHours())}:${pad(now.getMinutes())}</b><small>머문 시간 ${fmtTime((Date.now() - S.enteredAt) / 1000)}</small>`;
   // 누적 시간은 관리자에게만
   $('#hud-timer').title = document.body.classList.contains('admin') ? `${S.loc.name}에 머문 시간 모두 ${fmtLong(store.get(`stay:${S.loc.id}`, 0))}` : '머문 시간';
 }
