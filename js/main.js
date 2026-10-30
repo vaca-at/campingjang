@@ -15,7 +15,7 @@ import { buildInterior, buildExterior, buildMealHall, buildRoom, buildBoriamView
 import { Net, preloadNet } from './net.js';
 import { hangScroll, stopScrolls } from './scrolls.js';
 import { setSound, sound, moktak, bowl, coin, bigBell, sfx, setAmbience, TRACKS, setMusic, music } from './audio.js';
-import { buildCampsite, buildShore, SHELTERS, shelterOf } from './camp.js';
+import { buildCampsite, buildShore, buildShelterRoom, SHELTERS, shelterOf } from './camp.js';
 import { addPhoto, listPhotos, removePhoto } from './album.js';
 import { launchFirework, stepFireworks, addToDex, renderDex, loadDex } from './fun.js';
 import { daylight, applyDaylight, glow, dayPart } from './daytime.js';
@@ -46,6 +46,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // ───────── 렌더러 ─────────
 const canvas = $('#scene');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, preserveDrawingBuffer: params.has('shot') });
+renderer.localClippingEnabled = true;   // 텐트 안: 앞쪽 천을 잘라 문 너머가 보이게
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -145,7 +146,7 @@ const net = new Net({
 });
 
 // ───────── 월드 ─────────
-const BUILDERS = { in: buildCampsite, out: buildShore, meal: buildMealHall, room: buildRoom, boriam: buildBoriamView };
+const BUILDERS = { in: buildCampsite, out: buildShore, meal: buildMealHall, room: buildShelterRoom, boriam: buildBoriamView };
 // 창밖 풍경: 바깥 3D 풍경을 법당 자리(건물은 숨기고)에서 네 방향으로 찍어 이어 붙인 사진을 창에 붙여요.
 // 디자인마다 한 번만, 화면이 한가할 때 따로 만든 작은 그림판(렌더러)으로 찍어서 지금 화면은 멈추지 않아요
 const panoDone = new Set();
@@ -530,6 +531,7 @@ function freeSeat(seats, random = true) {
 
 // ───────── 동작 ─────────
 const ICONS = {
+  diary: '<path d="M6 3h10l3 3v15H6z"/><path d="M9 9h7M9 13h7M9 17h4" stroke="#fff" stroke-width="1.4"/>',
   hapjang: '<path d="M12 3c-1 2-2 5-2 9v6h4v-6c0-4-1-7-2-9z M9 18h6v2H9z"/>',
   banbae: '<circle cx="12" cy="5" r="2.2"/><path d="M12 8c-3 1-5 4-5 7h3l2-3 2 3h3c0-3-2-6-5-7z"/>',
   keunjeol: '<circle cx="6" cy="15" r="2.2"/><path d="M8 16h9c2 0 3 1 3 3H6z"/>',
@@ -583,6 +585,11 @@ function doAction(id) {
   S.target = null;
   S.walking = false;
   const on = S.me.play(id);
+  // 내 자리 낮잠: 침대 · 침낭 위로 옮겨 눕고, 다른 동작을 하면 다시 자리에 앉아요
+  if (S.scene === 'room' && S.active.napSpot) {
+    if (on && id === 'nap') { S.seat = null; S.me.seated = false; const n = S.active.napSpot; S.me.group.position.copy(n.pos); S.me.group.rotation.y = n.rot; }
+    else if (S.me.group.position.y > 0.01 && !S.me.seated) { S.me.group.position.y = 0; sitOn(S.active.seats[0], { auto: true }); }
+  }
   if (on && id === 'fireworks') { launchFirework(scene, S.me.group.position); addRecord('fireworks', 1); }
   if (on && (id === 'keunjeol' || id === 'banbae')) { bowl(0.4); addRecord('bows', 1); }
   $('#bae-counter').hidden = !(on && id === 'bae108');
@@ -1513,6 +1520,7 @@ document.addEventListener('click', (e) => {
   if (t.dataset.shelter) {
     try { localStorage.setItem(`campingjang:shelter:${S.loc.id}`, t.dataset.shelter); } catch {}
     S.worlds[S.loc.id]?.in?.setShelter?.(t.dataset.shelter);
+    if (S.worlds[S.loc.id]?.room && S.scene !== 'room') delete S.worlds[S.loc.id].room;   // 내 자리 안도 새 쉼터 모양으로
     document.querySelectorAll('[data-shelter]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.shelter === t.dataset.shelter)));
     return;
   }

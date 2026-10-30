@@ -2,7 +2,7 @@
 // - 캠프 마당(in): 디자인마다 텐트 · 캠핑카 · 카바나, 가운데 모닥불과 둘러앉는 캠핑 의자(앉는 자리)
 // - 물가(out): 같은 풍경에서 마당 앞쪽 끝, 물이 내려다보이는 자리. 낚시 의자와 잡은 것 담는 통
 import * as THREE from 'three';
-import { buildExterior, buildWaterside } from './world.js';
+import { buildExterior, buildWaterside, buildCampRoom } from './world.js';
 import { mat } from './avatar.js';
 
 const box = (g, c, w, h, d, x, y, z, o = {}) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(c, o)); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; g.add(m); return m; };
@@ -300,3 +300,6 @@ function beachChair(color) {   // 바닷가 접이식 비치 체어 (줄무늬 �
   const towel = box(g, '#f4f1ea', 0.5, 0.02, 0.4, 0, 0.34, 0.05); towel.rotation.x = 0.12;
   return g;
 }
+
+// 내 자리: 고른 쉼터 모양 그대로의 안 (돔 · 티피 텐트, 미니밴 · 모터홈, 카바나)
+export function buildShelterRoom(loc) { return buildCampRoom(loc, shelterOf(loc.id)); }

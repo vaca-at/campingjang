@@ -184,8 +184,8 @@ function actionPose(action, t, base, seated) {
       const fl = bump(t % 2.5, 1.4, 1.7, 1.9, 2.2);
       return mix(base, { aR: [-1.0 - fl * 0.5, 0.25 - fl * 0.5], aL: [-0.5, -0.2], head: 0.3, hip: 0.12 }, ease(t / 0.4));
     }
-    case 'nap':   // 고개 떨구고 꾸벅꾸벅
-      return mix(base, { aL: [-0.45, -0.35], aR: [-0.45, 0.35], head: 0.45 + Math.sin(t * 1.2) * 0.08, hip: 0.08 }, ease(t / 0.8));
+    case 'nap':   // 누워서 자기: 팔다리를 쭉 펴고 (몸 전체를 눕히는 건 update 에서)
+      return mix(base, { y: 0, hip: 0, head: 0.05 + Math.sin(t * 1.1) * 0.02, lL: [0, 0.04], lR: [0, -0.04], aL: [-0.12, -0.12], aR: [-0.12, 0.12] }, ease(t / 0.8));
     case 'guitar': {   // 왼손은 넥, 오른손으로 둥가둥가
       const str = Math.sin(t * 9);
       return mix(base, { aL: [-1.0, -0.7], aR: [-0.75 + str * 0.12, 0.45], head: 0.15 + Math.sin(t * 2) * 0.05 }, ease(t / 0.4));
@@ -208,6 +208,7 @@ function actionPose(action, t, base, seated) {
       const lift = bump(t % 4, 1.0, 1.5, 2.3, 2.8);
       return mix(base, { aL: [-0.95, -0.32], aR: [-1.0 - lift * 0.85, 0.32 + lift * 0.12], head: 0.15 - lift * 0.18 }, ease(t / 0.5));
     }
+    case 'diary':
     case 'sagyeong': {
       // 앞에 펼친 종이에 붓으로 또박또박. 고개를 숙이고 오른손이 조금씩 움직인다
       const w = Math.sin(t * 5), v = Math.sin(t * 2.1);
@@ -742,6 +743,11 @@ export class Avatar {
     const bob = !this.seated && this.speed > 0.05 ? Math.abs(Math.sin(this.walkPhase)) * (this.running ? 0.09 : 0.04) : 0;
     const breathe = Math.sin(performance.now() / 900) * 0.006;
     this.body.position.y = p.y * this.sitK + bob;   // 다리가 짧은 체형은 앉을 때 덜 내려가요
+    // 낮잠: 몸을 뒤로 눕혀요 (발은 제자리, 머리는 뒤쪽)
+    const lieT = this.action === 'nap' ? 1 : 0;
+    this.lieK = lerp(this.lieK || 0, lieT, Math.min(1, dt * 3));
+    this.body.rotation.x = -this.lieK * Math.PI / 2;
+    this.body.position.y += this.lieK * 0.18;
     this.hips.rotation.x = p.hip;
     this.hips.scale.y = this.torsoY * (1 + breathe);
     this.head.rotation.x = p.head;
