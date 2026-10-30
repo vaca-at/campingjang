@@ -1942,3 +1942,165 @@ export function buildBoriamView(loc) {
     update: (t) => { glints.material.opacity = 0.45 + Math.sin(t * 2.1) * 0.3; },
   };
 }
+
+// ───────── 캠핑장 물가: 마당 앞으로 내려가면 나오는 물가 (산 · 계곡 / 바다 · 해수욕장 / 별밤 · 강가) ─────────
+// 걷는 곳은 y=0 평평한 물가(bounds 안), 앞(+z)으로 물, 둘레는 산 · 숲 · 모래언덕
+const SHORE_Z = { forest: 7, sea: 11, river: 7 };   // 걸을 수 있는 물가 끝
+function shoreHeight(id) {
+  if (id === 'forest') {
+    // 편백 숲 계곡: 앞으로 시냇물이 가로질러 흐르고, 건너편은 가파른 숲 비탈, 뒤와 옆도 산이 감싸요
+    return (x, z) => {
+      const c = 13 + Math.sin(x / 11) * 2.5, dz = z - c;
+      let h = noise(x * 2, z * 2) * 0.15 * smooth(6, 10, Math.abs(x));
+      if (Math.abs(dz) < 5.5) h = Math.min(h, -1.3 * (1 - (dz / 5.5) ** 2));
+      if (dz > 5.5) h += (dz - 5.5) * 0.85 + noise(x, z) * 6 * smooth(5, 30, dz) + 50 * smooth(30, 200, dz);
+      if (z < -8) h += (-z - 8) * 0.5 + noise(x * 1.3, z) * 4 * smooth(-8, -30, z);
+      h += Math.max(0, Math.abs(x) - 26) * 0.5 * smooth(-10, 5, -dz);
+      return h;
+    };
+  }
+  if (id === 'sea') {
+    // 해수욕장: 넓은 모래사장이 바다로 완만하게, 뒤엔 해송 숲 모래언덕, 오른쪽 끝은 바위 곶과 방파제
+    return (x, z) => {
+      let h = 0;
+      if (z > 8) h = -(z - 8) * 0.14 - Math.max(0, z - 30) * 0.4;
+      if (z < -10) h += (-z - 10) * 0.35 + noise(x, z) * 3 * smooth(-10, -40, z) + 30 * smooth(-60, -200, z);
+      const head = Math.exp(-(((x - 70) / 30) ** 2) - (((z - 30) / 50) ** 2)); h = Math.max(h, head * 26 - 4 + noise(x * 2, z * 2) * 2 * head);
+      const head2 = Math.exp(-(((x + 90) / 40) ** 2) - (((z - 10) / 60) ** 2)); h = Math.max(h, head2 * 32 - 4);
+      return h;
+    };
+  }
+  // 강가 (밤): 풀밭 물가에서 넓고 잔잔한 강, 건너편은 낮은 산 그림자
+  return (x, z) => {
+    let h = noise(x * 2, z * 2) * 0.1;
+    if (z > 7) h = -(z - 7) * 0.12;
+    if (z > 12) h = -0.8;
+    if (z > 120) h = -0.8 + (z - 120) * 0.35 + noise(x, z) * 6 + 20 * smooth(140, 260, z);
+    if (z < -10) h += (-z - 10) * 0.3 + noise(x, z) * 3;
+    return h;
+  };
+}
+function stripeTex(colors, n = 12) { return canvasTex(256, 64, (g, w, hh) => { for (let i = 0; i < n; i++) { g.fillStyle = colors[i % colors.length]; g.fillRect((i * w) / n, 0, w / n + 1, hh); } }); }
+function parasol(colors) {
+  const g = new THREE.Group();
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, 2.4, 8), mat('#e8e2d6')); pole.position.y = 1.2; pole.rotation.z = 0.08; g.add(pole);
+  const top = new THREE.Mesh(new THREE.ConeGeometry(1.5, 0.55, 12, 1, true), new THREE.MeshStandardMaterial({ map: stripeTex(colors), side: THREE.DoubleSide, roughness: 0.8 }));
+  top.position.set(0.18, 2.4, 0); top.rotation.z = 0.08; top.castShadow = true; g.add(top);
+  return g;
+}
+function lighthouse() {
+  const g = new THREE.Group(), red = mat('#c9372c'), white = mat('#f4f1ea');
+  for (let i = 0; i < 4; i++) { const seg = new THREE.Mesh(new THREE.CylinderGeometry(1.15 - (i + 1) * 0.12, 1.15 - i * 0.12, 2, 16), i % 2 ? white : red); seg.position.y = 1 + i * 2; seg.castShadow = true; g.add(seg); }
+  const deck = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.15, 16), mat('#2a2a2a')); deck.position.y = 8.1; g.add(deck);
+  const lampM = new THREE.MeshStandardMaterial({ color: '#fff3c0', emissive: '#ffd77a', emissiveIntensity: 1.5 });
+  const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.9, 12), lampM); lamp.position.y = 8.65; g.add(lamp);
+  const cap = new THREE.Mesh(new THREE.ConeGeometry(0.7, 0.7, 12), red); cap.position.y = 9.45; g.add(cap);
+  const pl = new THREE.PointLight('#ffd77a', 8, 40, 1.5); pl.position.y = 8.7; g.add(pl);
+  return g;
+}
+function reeds(r, n, place) {
+  const geo = new THREE.ConeGeometry(0.04, 1.6, 4); geo.translate(0, 0.8, 0);
+  const im = new THREE.InstancedMesh(geo, new THREE.MeshStandardMaterial({ roughness: 0.9 }), n);
+  const M = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), s = new THREE.Vector3(), c = new THREE.Color();
+  for (let i = 0; i < n; i++) {
+    const [x, y, z] = place(r);
+    e.set((r() - 0.5) * 0.4, 0, (r() - 0.5) * 0.4); q.setFromEuler(e); const k = 0.7 + r() * 0.8; s.set(1, k, 1); v.set(x, y, z);
+    M.compose(v, q, s); im.setMatrixAt(i, M); c.set(['#b59a5a', '#a08848', '#c9ad6a', '#7d8a4a'][Math.floor(r() * 4)]); im.setColorAt(i, c);
+  }
+  return im;
+}
+export function buildWaterside(loc) {
+  const id = loc.id, g = new THREE.Group(), animated = [], r = rng(id.length * 97);
+  const sky = skyDomeHQ(loc.sky[0], loc.sky[1], { clouds: loc.night ? 0.12 : id === 'sea' ? 0.4 : 0.55, milky: loc.night ? 1 : 0 });
+  g.add(sky, mountainLayers(loc));
+  const h = shoreHeight(id);
+
+  // 땅: 가까운 곳은 촘촘하게 (물가 · 바위가 또렷하게)
+  const geo = new THREE.PlaneGeometry(700, 700, 260, 260); geo.rotateX(-Math.PI / 2);
+  const p = geo.attributes.position, cols = [], tmp = new THREE.Color();
+  const grass = new THREE.Color(id === 'sea' ? '#e6d6ad' : id === 'river' ? '#5f7a4a' : '#6f8f4e'), wetSand = new THREE.Color('#c9b68a'), pebble = new THREE.Color('#9d968a'), forestC = new THREE.Color('#3f6237'), rock = new THREE.Color('#8b8378');
+  for (let i = 0; i < p.count; i++) {
+    const x = p.getX(i), z = p.getZ(i), y = h(x, z); p.setY(i, y);
+    tmp.copy(grass);
+    if (id === 'sea') { if (z > 8) tmp.copy(wetSand); if (z < -12 || y > 2) tmp.lerp(forestC, smooth(-12, -22, z) + smooth(2, 6, y)); }
+    else {
+      if (y < 0.05 && z > 4) tmp.copy(pebble);
+      if (y > 3) tmp.lerp(forestC, 0.6);
+    }
+    tmp.offsetHSL(0, 0, noise(x * 3, z * 3) * 0.025);
+    cols.push(tmp.r, tmp.g, tmp.b);
+  }
+  geo.computeVertexNormals();
+  const nrm = geo.attributes.normal;
+  for (let i = 0; i < p.count; i++) { if (1 - nrm.getY(i) > 0.35) { tmp.setRGB(cols[i * 3], cols[i * 3 + 1], cols[i * 3 + 2]).lerp(rock, 0.6); cols[i * 3] = tmp.r; cols[i * 3 + 1] = tmp.g; cols[i * 3 + 2] = tmp.b; } }
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+  const detail = canvasTex(256, 256, (cg, w, hh) => { cg.fillStyle = '#fff'; cg.fillRect(0, 0, w, hh); for (let i = 0; i < 5000; i++) { const k = 200 + Math.random() * 55; cg.fillStyle = `rgb(${k},${k},${k})`; cg.fillRect(Math.random() * w, Math.random() * hh, 2, id === 'sea' ? 2 : 4); } }, [140, 140]);
+  const ground = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, map: detail, roughness: 0.95 })); ground.receiveShadow = true; g.add(ground);
+
+  if (id === 'forest') {
+    // 시냇물: 물결 무늬가 오른쪽으로 흘러가요
+    const flow = canvasTex(256, 128, (cg, w, hh) => { cg.fillStyle = '#ffffff'; cg.fillRect(0, 0, w, hh); for (let i = 0; i < 70; i++) { cg.fillStyle = `rgba(200,230,235,${0.3 + Math.random() * 0.5})`; cg.fillRect(Math.random() * w, Math.random() * hh, 20 + Math.random() * 50, 2); } }, [12, 2]);
+    const water = new THREE.Mesh(new THREE.PlaneGeometry(140, 14), new THREE.MeshStandardMaterial({ color: '#5f9a95', map: flow, roughness: 0.08, metalness: 0.25, transparent: true, opacity: 0.88 }));
+    water.rotation.x = -Math.PI / 2; water.position.set(0, -0.32, 13); g.add(water);
+    animated.push((t) => { flow.offset.x = -t * 0.12; });
+    // 시냇가 바위 · 징검다리
+    for (let i = 0; i < 26; i++) { const x = -40 + i * 3.2 + r() * 2, c = 13 + Math.sin(x / 11) * 2.5, side = r() < 0.5 ? -1 : 1; const b = boulder(300 + i, 0.5 + r() * 1.3); b.position.set(x, -0.5, c + side * (4.5 + r() * 2)); g.add(b); }
+    for (let i = 0; i < 6; i++) { const z = 8.5 + i * 1.6, x = 6 + Math.sin(i) * 0.4; const st = boulder(400 + i, 0.45); st.scale.y = 0.35; st.position.set(x, -0.2, z); g.add(st); }
+    for (const [x, z, k] of [[-12, 19, 2.8], [15, 18, 2.2], [-22, 9, 1.8]]) { const b = boulder(500 + x, k); b.position.set(x, h(x, z) - k * 0.3, z); g.add(b); }
+    g.add(scatterTrees(h, 1600, 41, { minD: 14, maxD: 330, autumn: false, skip: (x, z) => h(x, z) < 1 || (z > -6 && z < 19 && Math.abs(x) < 24) }));
+  }
+  if (id === 'sea') {
+    const seaGeo = new THREE.PlaneGeometry(2400, 2400, 40, 40); seaGeo.rotateX(-Math.PI / 2);
+    const sp = seaGeo.attributes.position, sc = [], cN = new THREE.Color('#3fa0b0'), cF = new THREE.Color('#9cc2d6'), c = new THREE.Color();
+    for (let i = 0; i < sp.count; i++) { c.copy(cN).lerp(cF, smooth(30, 900, sp.getZ(i))); sc.push(c.r, c.g, c.b); }
+    seaGeo.setAttribute('color', new THREE.Float32BufferAttribute(sc, 3));
+    const sea = new THREE.Mesh(seaGeo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.2, metalness: 0.2, transparent: true, opacity: 0.92 }));
+    sea.position.set(0, -0.35, 1200); g.add(sea);
+    // 밀려왔다 빠지는 하얀 물거품 두 줄
+    const foamTex = canvasTex(512, 64, (cg, w, hh) => { const gr = cg.createLinearGradient(0, 0, 0, hh); gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.55, 'rgba(255,255,255,.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); cg.fillStyle = gr; cg.fillRect(0, 0, w, hh); cg.globalCompositeOperation = 'destination-out'; for (let i = 0; i < 160; i++) { cg.beginPath(); cg.arc(Math.random() * w, hh * (0.4 + Math.random() * 0.4), 2 + Math.random() * 5, 0, 7); cg.fill(); } }, [6, 1]);
+    [0, 1].forEach((k) => {
+      const foam = new THREE.Mesh(new THREE.PlaneGeometry(160, 2.2), new THREE.MeshBasicMaterial({ map: foamTex, transparent: true, depthWrite: false }));
+      foam.rotation.x = -Math.PI / 2; g.add(foam);
+      animated.push((t) => { const u = ((t / 7 + k * 0.5) % 1), z = 14 - Math.sin(u * Math.PI) * 4; foam.position.set(0, h(0, z) + 0.06 > -0.3 ? h(0, z) + 0.06 : -0.29, z); foam.material.opacity = Math.sin(u * Math.PI) * 0.85; });
+    });
+    // 방파제 끝 빨간 등대, 파라솔과 해송 숲, 감시탑
+    const bw = new THREE.Mesh(new THREE.BoxGeometry(4, 2.4, 70), mat('#a7a39a')); bw.position.set(46, 0.3, 55); bw.rotation.y = -0.35; bw.castShadow = true; g.add(bw);
+    const lh = lighthouse(); lh.position.set(46 + Math.sin(-0.35) * 34, 1.5, 55 + Math.cos(-0.35) * 34); g.add(lh);
+    [[-7, 8, ['#e2603d', '#f4f1ea']], [8, 8.5, ['#2f7a96', '#f4f1ea']], [-17, 7, ['#e8b54a', '#f4f1ea']], [18, 7.5, ['#3f9a6a', '#f4f1ea']]].forEach(([x, z, c]) => { const ps = parasol(c); ps.position.set(x, 0, z); ps.rotation.y = r() * 6; g.add(ps); });
+    const tower = new THREE.Group(); for (const [x, z] of [[-0.6, -0.6], [0.6, -0.6], [-0.6, 0.6], [0.6, 0.6]]) { const l = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.6, 0.12), mat('#e8e2d6')); l.position.set(x, 1.3, z); tower.add(l); }
+    const cab = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.9, 1.6), mat('#c9372c')); cab.position.y = 3.05; tower.add(cab); const roof = new THREE.Mesh(new THREE.ConeGeometry(1.3, 0.6, 4), mat('#f4f1ea')); roof.position.y = 3.8; roof.rotation.y = Math.PI / 4; tower.add(roof);
+    tower.position.set(-28, 0, 0); g.add(tower);
+    g.add(scatterTrees(h, 1300, 51, { minD: 20, maxD: 300, autumn: false, skip: (x, z) => h(x, z) < 1.5 || z > 40 }));
+  }
+  if (id === 'river') {
+    // 잔잔한 강: 별과 은하수가 비쳐요
+    const rv = mirrorWater(new THREE.PlaneGeometry(900, 140), '#1c2850', 0.45); rv.position.set(0, -0.45, 80); g.add(rv);
+    g.add(reeds(r, 900, (rr) => { const x = -60 + rr() * 120, z = 5.5 + rr() * 6; return Math.abs(x) < 7 && z < 9 ? [x + 20, h(x + 20, z), z] : [x, h(x, z), z]; }));
+    g.add(scatterTrees(h, 900, 61, { minD: 20, maxD: 330, autumn: false, skip: (x, z) => h(x, z) < 1 || (z > 0 && z < 125) }));
+    // 반딧불이: 갈대 위로 천천히 떠다니며 깜빡여요
+    const n = 70, pos = new Float32Array(n * 3), base = [];
+    for (let i = 0; i < n; i++) { base.push([-25 + r() * 50, 0.4 + r() * 2, 2 + r() * 10, r() * 9]); }
+    const fg = new THREE.BufferGeometry(); fg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const glow = canvasTex(64, 64, (cg) => { const rg = cg.createRadialGradient(32, 32, 0, 32, 32, 32); rg.addColorStop(0, 'rgba(255,255,255,1)'); rg.addColorStop(0.3, 'rgba(255,255,255,.6)'); rg.addColorStop(1, 'rgba(255,255,255,0)'); cg.fillStyle = rg; cg.fillRect(0, 0, 64, 64); });
+    const flies = new THREE.Points(fg, new THREE.PointsMaterial({ color: '#d9ff7a', size: 0.35, map: glow, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+    g.add(flies);
+    animated.push((t) => { for (let i = 0; i < n; i++) { const [x, y, z, ph] = base[i]; pos[i * 3] = x + Math.sin(t * 0.3 + ph) * 1.5; pos[i * 3 + 1] = y + Math.sin(t * 0.7 + ph * 2) * 0.4; pos[i * 3 + 2] = z + Math.cos(t * 0.25 + ph) * 1.2; } fg.attributes.position.needsUpdate = true; flies.material.opacity = 0.6 + 0.4 * Math.sin(t * 2.1); });
+  }
+
+  const hemi = new THREE.HemisphereLight(loc.sky[0], '#6b5a44', 1.1); g.add(hemi);
+  const sun = new THREE.DirectionalLight('#fff3dc', 2.4);
+  sun.position.copy(SUN_DIR).multiplyScalar(70).add(new THREE.Vector3(0, 12, 0)); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+  Object.assign(sun.shadow.camera, { left: -30, right: 30, top: 30, bottom: -30, near: 1, far: 140 }); sun.shadow.bias = -0.0006;
+  g.add(sun, sun.target);
+  const sz = SHORE_Z[id];
+  return {
+    group: g, floor: ground, door: null, h,
+    spawn: new THREE.Vector3(0, 0, sz - 5), spawnRot: 0,
+    camDist: 7, camRise: 0.3, camLookY: 1.2,
+    bounds: { minX: -22, maxX: 22, minZ: -8, maxZ: sz },
+    blockers: [],
+    fog: id === 'forest' ? new THREE.Fog(loc.fog, 90, 600) : new THREE.Fog(loc.fog, 200, 1500),
+    background: new THREE.Color(loc.sky[1]),
+    update: (t) => { sky.material.uniforms.time.value = t; animated.forEach((f) => f(t)); },
+  };
+}

@@ -2,7 +2,7 @@
 // - 캠프 마당(in): 디자인마다 텐트 · 캠핑카 · 카바나, 가운데 모닥불과 둘러앉는 캠핑 의자(앉는 자리)
 // - 물가(out): 같은 풍경에서 마당 앞쪽 끝, 물이 내려다보이는 자리. 낚시 의자와 잡은 것 담는 통
 import * as THREE from 'three';
-import { buildExterior } from './world.js';
+import { buildExterior, buildWaterside } from './world.js';
 import { mat } from './avatar.js';
 
 const box = (g, c, w, h, d, x, y, z, o = {}) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(c, o)); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; g.add(m); return m; };
@@ -280,26 +280,23 @@ export function buildCampsite(loc) {
   };
 }
 
-// 물가: 같은 풍경의 앞쪽 끝. 바깥을 내려다보는 자리에 낚시 의자 둘
+// 물가: 마당 앞으로 내려가면 나오는 물가 (산 · 계곡 / 바다 · 해수욕장 / 별밤 · 강가). 물을 바라보는 의자 셋과 잡은 것 담는 통
 export function buildShore(loc) {
-  const w = buildExterior(loc);
-  w.hall.visible = false;
-  w.floor.material = groundMat(loc.id);
-  w.pagodaSlot.visible = false;
+  const w = buildWaterside(loc), sz = w.bounds.maxZ;
   const seats = [];
-  [[-2.2, 18.2], [2.2, 18.2]].forEach(([x, z], i) => {
-    const ch = campChair(i ? '#2f7a96' : '#3f6b55'); ch.position.set(x, 0, z); w.group.add(ch);
-    ch.traverse((o) => { if (o.isMesh) o.userData.seats = 'chair'; });
-    seats.push({ id: i, pos: new THREE.Vector3(x, 0, z), rot: 0, y: 0.4, mesh: ch });
+  const chairs = loc.id === 'sea'
+    ? [[-7.7, 8.6, '#e2603d'], [-6.3, 8.6, '#f4f1ea'], [8.6, 9.1, '#2f7a96']]
+    : [[-2.6, sz - 1.2, '#3f6b55'], [0, sz - 1, '#c9822a'], [2.6, sz - 1.2, '#2f7a96']];
+  chairs.forEach(([x, z, c], i) => {
+    const ch = loc.id === 'sea' ? beachChair(c) : campChair(c);
+    addSeat(w.group, seats, ch, x, z, 0, loc.id === 'sea' ? 0.3 : 0.4);
   });
-  // 잡은 것 담는 통 · 뜰채
-  const bucket = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.22, 0.4, 14), mat('#2f7a96')); bucket.position.set(0, 0.2, 18.5); bucket.castShadow = true; w.group.add(bucket);
-  return {
-    ...w,
-    door: null,
-    seats,
-    spawn: new THREE.Vector3(0, 0, 15), spawnRot: 0,
-    camDist: 7, camRise: 0.3, camLookY: 1.2,
-    blockers: [],
-  };
+  const bucket = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.22, 0.4, 14), mat('#2f7a96')); if (loc.id === 'sea') bucket.position.set(-5.2, 0.2, 8.4); else bucket.position.set(1.3, 0.2, sz - 0.4); bucket.castShadow = true; w.group.add(bucket);
+  if (loc.id === 'river') { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 1.8, 8), mat('#5a3a24')); post.position.set(-4.2, 0.9, sz - 1); w.group.add(post); lantern(w.group, -4.2, 1.85, sz - 1); }
+  return { ...w, seats, camDist: 7, camRise: 0.3, camLookY: 1.2 };
+}
+function beachChair(color) {   // 바닷가 접이식 비치 체어 (줄무늬 천)
+  const g = relaxChair(color);
+  const towel = box(g, '#f4f1ea', 0.5, 0.02, 0.4, 0, 0.34, 0.05); towel.rotation.x = 0.12;
+  return g;
 }

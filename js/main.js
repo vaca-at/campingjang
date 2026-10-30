@@ -191,7 +191,7 @@ function worldFor(locId, which) {
   if (!w[which]) {
     const loc = LOCATIONS.find((l) => l.id === locId);
     w[which] = BUILDERS[which](loc);
-    if (which === 'out') applyPagoda(w.out);
+    if (w[which].setPagoda) applyPagoda(w[which]);
     if (['in', 'room', 'meal'].includes(which)) capturePanorama(loc);
   }
   return w[which];
