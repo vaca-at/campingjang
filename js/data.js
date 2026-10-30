@@ -171,7 +171,7 @@ export const ACTIONS = [
 
 // 장소마다 아래 동작 줄에 나오는 다섯 가지 (숫자 키 1~5 순서). seat: 앉아야 하는 동작이라 자동으로 앉아요
 export const SCENE_ACTIONS = {
-  in: ['warm', 'roast', 'chop', 'fireworks', 'wave'],
+  in: ['wave', 'bugs', 'warm', 'roast', 'fireworks'],
   room: ['nap', 'read', 'guitar', 'diary', 'tea'],
   out: ['fish', 'bugs', 'skip', 'walk', 'splash'],
   meal: ['cook', 'grill', 'eat', 'wash', 'sweep'],
