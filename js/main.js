@@ -1560,7 +1560,8 @@ $('#btn-sound').onclick = () => { setSound(!sound.on); store.set('muted', !sound
 
 // 법당 음악: 실제 녹음 다섯 곡 + 합성 세 곡 (끄기는 위쪽 소리 단추). 고른 곡은 이 기기에 남고, 소리를 켜야 들려요
 // 처음 온 분(또는 예전에 끄기·지운 곡을 골랐던 분)은 1번 싱잉볼로 시작. 소리를 끄려면 위쪽 소리 단추
-{ const m = store.get('music'); setMusic(TRACKS.some((t) => t.id === m) ? m : 'campfire'); }
+// 들어오면 먼저 들리는 곡: 6번 Sunrise (통기타). 저장 이름을 바꿔서 예전에 고른 곡 대신 한 번은 이 곡부터
+{ const m = store.get('music2'); setMusic(TRACKS.some((t) => t.id === m) ? m : 'sunrise'); }
 // 체형 단추 그림: 글자 없이 실루엣만 (같은 바닥선, 같은 축척이라 키 차이가 보여요)
 function bodySvg(B) {
   const u = 26, base = 58, leg = 0.46 * B.leg * B.k * u, th = 0.56 * B.th * B.k * u, hd = 0.52 * B.head * B.k * u, tw = 0.5 * B.tw * B.k * u;
@@ -1599,7 +1600,7 @@ function renderMusic() {
   }).join('');
 }
 function pickMusic(id) {
-  store.set('music', id);
+  store.set('music2', id);
   if (!sound.on) { setSound(true); store.set('muted', false); syncSoundBtn(); }
   setMusic(id);
   renderMusic();
