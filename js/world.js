@@ -2137,7 +2137,7 @@ function hangLamp(g, x, y, z, k = 1) {
 }
 export function buildCampRoom(loc, kind) {
   const g = new THREE.Group();
-  let seat, floor, bounds, napSpot, blockers = [], camDist = 2.4, maxDist = 3.6, exitZ = null, camLookY = 1.0, camRise = 0.18;
+  let seat, floor, bounds, napSpot, bedding = null, blockers = [], camDist = 2.4, maxDist = 3.6, exitZ = null, camLookY = 1.0, camRise = 0.18;
   g.add(new THREE.HemisphereLight('#fff1dc', '#3a2a20', 0.7));
   if (kind === 'dome' || kind === 'teepee') {
     const R = 3.0, tee = kind === 'teepee';
@@ -2178,7 +2178,14 @@ export function buildCampRoom(loc, kind) {
     hangLamp(g, 0, tee ? 3.0 : 2.15, -0.2, 1.1);
     fairyLights(g, new THREE.Vector3(-1.9, 1.6, -0.6), new THREE.Vector3(1.9, 1.6, -0.6), 14, 0.2);
     seat = { id: 0, pos: new THREE.Vector3(0, 0, -0.3), rot: 0, y: 0.12 };
-    napSpot = { pos: new THREE.Vector3(-0.75, 0.12, 0.05), rot: 0 };   // 파란 침낭 위
+    // 낮잠: 넓은 앞쪽에 이불을 펴고 누워요
+    const nz = tee ? 0.65 : 1.25;
+    napSpot = { pos: new THREE.Vector3(0, 0.07, nz), rot: 0 };
+    bedding = new THREE.Group(); bedding.position.set(0, 0, nz - 0.85);
+    const pad = new THREE.Mesh(new RoundedBoxGeometry(0.95, 0.07, 2.0, 2, 0.03), mat('#f2ece0')); pad.position.y = 0.035; bedding.add(pad);
+    const quilt = new THREE.Mesh(new RoundedBoxGeometry(0.98, 0.05, 1.2, 2, 0.02), mat('#e8b54a')); quilt.position.set(0, 0.09, 0.35); bedding.add(quilt);
+    const pil = new THREE.Mesh(new RoundedBoxGeometry(0.5, 0.1, 0.3, 3, 0.04), mat('#ffffff')); pil.position.set(0, 0.11, -0.8); bedding.add(pil);
+    g.add(bedding);
     bounds = { minX: -1.8, maxX: 1.8, minZ: -1.7, maxZ: dz - 0.4 };
     camDist = 2.0; maxDist = 2.6;
   } else if (kind === 'minivan' || kind === 'motorhome') {
@@ -2270,18 +2277,21 @@ export function buildCampRoom(loc, kind) {
     fairyLights(g, new THREE.Vector3(-W * 0.6, 3.0, D - 0.3), new THREE.Vector3(W * 0.6, 3.0, D - 0.3), 16, 0.3);
     hangLamp(g, 0, RIDGE - 0.9, 0, 1.0);
     // 창가 요: 누워서 창밖 보며 낮잠
-    const futon = new THREE.Mesh(new RoundedBoxGeometry(2.0, 0.14, 0.95, 3, 0.05), mat('#e8dcc4')); futon.position.set(1.15, 0.07, 1.7); g.add(futon);
-    const fp = new THREE.Mesh(new RoundedBoxGeometry(0.4, 0.12, 0.6, 3, 0.05), mat('#f2ece0')); fp.position.set(1.95, 0.2, 1.7); g.add(fp);
-    const blanket = new THREE.Mesh(new RoundedBoxGeometry(1.1, 0.05, 0.97, 2, 0.02), mat('#3f6b55')); blanket.position.set(0.7, 0.16, 1.7); g.add(blanket);
+    bedding = new THREE.Group(); bedding.position.set(1.15, 0, 1.7); bedding.rotation.y = Math.PI / 2; g.add(bedding);   // 낮잠 잘 때만 펴는 요
+    const futon = new THREE.Mesh(new RoundedBoxGeometry(0.95, 0.14, 2.0, 3, 0.05), mat('#e8dcc4')); futon.position.y = 0.07; bedding.add(futon);
+    const fp = new THREE.Mesh(new RoundedBoxGeometry(0.6, 0.12, 0.4, 3, 0.05), mat('#f2ece0')); fp.position.set(0, 0.2, -0.8); bedding.add(fp);
+    const blanket = new THREE.Mesh(new RoundedBoxGeometry(0.97, 0.05, 1.1, 2, 0.02), mat('#3f6b55')); blanket.position.set(0, 0.16, 0.45); bedding.add(blanket);
     seat = { id: 0, pos: new THREE.Vector3(0, 0, -0.2), rot: 0, y: 0.4 };
     napSpot = { pos: new THREE.Vector3(0.25, 0.14, 1.7), rot: -Math.PI / 2 };
     camLookY = 1.35; camRise = 0.3;
     bounds = { minX: -W + 1.0, maxX: W - 1.0, minZ: -D + 1.4, maxZ: D - 0.6 };
     camDist = 2.4; maxDist = 3.4;
   }
+  if (bedding) { bedding.scale.z = 0.01; bedding.visible = false; }
   return {
     group: g, floor, seats: [seat], exitDoor: null,
-    spawn: seat.pos.clone(), spawnRot: 0, camRise, camLookY, napSpot,
+    spawn: seat.pos.clone(), spawnRot: 0, camRise, camLookY, napSpot, bedding,
+    spots: napSpot ? { nap: { x: napSpot.pos.x, z: napSpot.pos.z, rot: napSpot.rot } } : {},
     exitZ, camDist, minDist: 1.0, maxDist,
     bounds, blockers, fog: null, background: new THREE.Color('#1c1410'),
     update: (t) => g.userData.tick?.(t),

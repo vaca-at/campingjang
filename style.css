@@ -21,6 +21,7 @@
 * { box-sizing: border-box; }
 /* 두 번 눌러 확대 막기 (두 손가락 확대·축소는 3D 화면 카메라가 받아요) */
 html { touch-action: manipulation; }
+html { font-synthesis: none; }   /* 언즈체는 한 굵기뿐이라, 굵게(b · h1)도 원래 얇은 획 그대로 */
 html, body { margin: 0; height: 100%; overflow: hidden; background: #1c1410; color: var(--ink); font-family: var(--body); -webkit-tap-highlight-color: transparent; word-break: keep-all; }
 [hidden] { display: none !important; }
 button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }

@@ -149,7 +149,7 @@ export const ACTIONS = [
   { id: 'fireworks', name: '불꽃놀이', cap: '밤하늘에 불꽃 쏘기 · 모두에게 보여요', verb: '불꽃을 쏘아 올렸어요', dur: 2.6 },
   { id: 'wave', name: '손 흔들기', cap: '반갑게 손 흔들기', verb: '손을 흔들었어요', dur: 2.0 },
   // 물가
-  { id: 'fish', name: '낚시', cap: '낚싯대를 드리우고 기다리기', verb: '낚시를 시작했어요', loop: true },
+  { id: 'fish', name: '낚시', cap: '낚싯대를 드리우고 기다리기', verb: '낚시를 시작했어요', loop: true, seat: true },
   { id: 'bugs', name: '곤충 잡기', cap: '잠자리채를 휘둘러요', verb: '곤충을 잡으러 나섰어요', loop: true },
   { id: 'skip', name: '물수제비', cap: '납작한 돌을 던져요', verb: '물수제비를 떴어요', dur: 2.2 },
   { id: 'walk', name: '산책', cap: '마당 둘레를 천천히 걷기', verb: '산책을 시작했어요' },
@@ -158,7 +158,7 @@ export const ACTIONS = [
   { id: 'cook', name: '요리하기', cap: '코펠에 휘휘 저어요', verb: '요리를 시작했어요', loop: true },
   { id: 'grill', name: '고기 굽기', cap: '집게로 뒤집기', verb: '고기를 굽기 시작했어요', loop: true },
   { id: 'eat', name: '라면 먹기', cap: '앉아서 호로록', verb: '라면을 먹기 시작했어요', loop: true, seat: true },
-  { id: 'wash', name: '설거지', cap: '코펠 닦기', verb: '설거지를 시작했어요', loop: true, seat: true },
+  { id: 'wash', name: '설거지', cap: '개수대에서 코펠 닦기', verb: '설거지를 시작했어요', loop: true },
   { id: 'sweep', name: '청소', cap: '쓰레기 줍고 분리수거', verb: '청소를 시작했어요', loop: true },
   // 내 자리
   { id: 'nap', name: '낮잠', cap: '누워서 스르르', verb: '낮잠을 자요', loop: true },

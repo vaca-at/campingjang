@@ -552,6 +552,7 @@ function renderActions() {
   syncActionButtons();
 }
 
+let spotArrived = null;
 function doAction(id) {
   // 산보 · 탑돌이: 길을 따라 걷는 동작이라 따로 (다시 누르면 멈춤)
   if (id === 'walk' || id === 'tapdori') {
@@ -572,6 +573,17 @@ function doAction(id) {
     net.sendAct({ a: id, on }); pushState(true); syncActionButtons();
     return;
   }
+  // 캠핑장: 그 동작을 하는 자리(개수대 · 버너 · 장작더미 · 물가 · 이불 …)까지 걸어가서 시작해요
+  const spot = S.active.spots?.[id];
+  if (spot && S.me.action !== id && spotArrived !== id) {
+    const to = new THREE.Vector3(spot.x + (Math.random() - 0.5) * (spot.jx || 0), 0, spot.z);
+    if (to.distanceTo(S.me.group.position.clone().setY(0)) > 0.35) {
+      standUp(); if (S.me.action) S.me.stop();
+      S.target = { pos: to, speed: SEAT_SPEED, face: spot.rot, onArrive: () => { spotArrived = id; doAction(id); spotArrived = null; } };
+      syncActionButtons();
+      return;
+    }
+  }
   // 내 방에서 절은 책상에서 물러나 절하는 방석 위에서 (책상에 머리를 박지 않게)
   if (S.scene === 'room' && ['bae108', 'keunjeol', 'banbae'].includes(id) && S.active.bowSpot) {
     S.seat = null; S.me.seated = false;
@@ -587,7 +599,7 @@ function doAction(id) {
   const on = S.me.play(id);
   // 내 자리 낮잠: 침대 · 침낭 위로 옮겨 눕고, 다른 동작을 하면 다시 자리에 앉아요
   if (S.scene === 'room' && S.active.napSpot) {
-    if (on && id === 'nap') { S.seat = null; S.me.seated = false; const n = S.active.napSpot; S.me.group.position.copy(n.pos); S.me.group.rotation.y = n.rot; }
+    if (on && id === 'nap') { S.seat = null; S.me.seated = false; const n = S.active.napSpot; S.me.group.position.copy(n.pos); S.me.group.rotation.y = n.rot; }   // 이불 위로 (이불은 아래 그리기에서 펴져요)
     else if (S.me.group.position.y > 0.01 && !S.me.seated) { S.me.group.position.y = 0; sitOn(S.active.seats[0], { auto: true }); }
   }
   if (on && id === 'fireworks') { launchFirework(scene, S.me.group.position); addRecord('fireworks', 1); }
@@ -1429,6 +1441,9 @@ function loop() {
     S.me.update(dt, ACTIONS);
     stepFireworks(dt);
     stepCatch(dt);
+    // 낮잠 이불: 낮잠을 자는 동안만 스르르 펴지고, 일어나면 개어요
+    const bed = S.active?.bedding;
+    if (bed) { const want = S.me.action === 'nap' ? 1 : 0.01; bed.scale.z += (want - bed.scale.z) * Math.min(1, dt * 5); bed.visible = bed.scale.z > 0.05; }
     updateCounters();
     if (S.stones) stepStones();
     if (!S.me.action && document.querySelector('.act[aria-pressed="true"]')) syncActionButtons();

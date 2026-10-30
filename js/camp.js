@@ -265,6 +265,11 @@ export function buildCampsite(loc) {
     seats.push({ id: i, pos: new THREE.Vector3(x, 0, z), rot: a + Math.PI, y: 0.4, mesh: ch });
   }
   const yardBlockers = yardSeats(w.group, seats);
+  // 장작더미와 도끼 받침 (장작 패기 하러 오는 곳)
+  const pile = new THREE.Group(); pile.position.set(-6.2, 0, -6.2); w.group.add(pile);
+  const blockM = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 0.5, 12), mat('#7a5232')); blockM.position.y = 0.25; blockM.castShadow = true; pile.add(blockM);
+  for (let r = 0; r < 3; r++) for (let i = 0; i < 5 - r; i++) { const lg = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 1.0, 8), mat(i % 2 ? '#8a5a34' : '#6e4a2c')); lg.rotation.x = Math.PI / 2; lg.position.set(-1.3 + i * 0.28 + r * 0.14, 0.13 + r * 0.24, -0.4); lg.castShadow = true; pile.add(lg); }
+  yardBlockers.push({ minX: -7.8, maxX: -5.8, minZ: -7.0, maxZ: -5.8 });
   const baseUpdate = w.update;
   return {
     ...w,
@@ -273,6 +278,8 @@ export function buildCampsite(loc) {
     flames: [],
     campfire: fire.group,
     setShelter,
+    // 동작마다 걸어가서 하는 자리 (x, z, 바라보는 쪽, 옆으로 흩어지는 폭)
+    spots: { chop: { x: -6.2, z: -5.3, rot: Math.PI }, fireworks: { x: 0, z: 11, rot: Math.PI, jx: 3 } },
     spawn: new THREE.Vector3(0, 0, 8.5), spawnRot: Math.PI,
     camDist: 7, camRise: 0.32, camLookY: 1.6,
     blockers: [{ minX: -3.4, maxX: 3.4, minZ: -14, maxZ: -8 }, { minX: -1.1, maxX: 1.1, minZ: 1.9, maxZ: 4.1 }, ...yardBlockers],
@@ -294,7 +301,7 @@ export function buildShore(loc) {
   });
   const bucket = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.22, 0.4, 14), mat('#2f7a96')); if (loc.id === 'sea') bucket.position.set(-5.2, 0.2, 8.4); else bucket.position.set(1.3, 0.2, sz - 0.4); bucket.castShadow = true; w.group.add(bucket);
   if (loc.id === 'river') { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 1.8, 8), mat('#5a3a24')); post.position.set(-4.2, 0.9, sz - 1); w.group.add(post); lantern(w.group, -4.2, 1.85, sz - 1); }
-  return { ...w, seats, camDist: 7, camRise: 0.3, camLookY: 1.2 };
+  return { ...w, seats, camDist: 7, camRise: 0.3, camLookY: 1.2, spots: { skip: { x: 0, z: sz - 0.1, rot: 0, jx: 4 }, splash: { x: 0, z: sz - 0.1, rot: 0, jx: 4 } } };
 }
 function beachChair(color) {   // 바닷가 접이식 비치 체어 (줄무늬 천)
   const g = relaxChair(color);
@@ -383,6 +390,8 @@ export function buildCampKitchen(loc) {
     camDist: 6, camRise: 0.2, camLookY: 1.3,   // 지붕 아래에서 식탁 · 조리대가 보이게 낮게
     blockers,
     walkPath: null,
+    // 요리 · 고기 굽기는 버너 앞, 설거지는 개수대 앞, 청소는 분리수거함 앞
+    spots: { cook: { x: 1.2, z: -5.55, rot: Math.PI, jx: 0.3 }, grill: { x: 2.8, z: -5.55, rot: Math.PI, jx: 0.3 }, wash: { x: -2.7, z: -5.55, rot: Math.PI, jx: 2.4 }, sweep: { x: 4.2, z: -2.15, rot: Math.PI / 2, jx: 0 } },
   };
 }
 function fairy(g, x0, x1, y, z) {
