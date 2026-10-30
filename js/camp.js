@@ -2,6 +2,7 @@
 // - 캠프 마당(in): 디자인마다 텐트 · 캠핑카 · 카바나, 가운데 모닥불과 둘러앉는 캠핑 의자(앉는 자리)
 // - 물가(out): 같은 풍경에서 마당 앞쪽 끝, 물이 내려다보이는 자리. 낚시 의자와 잡은 것 담는 통
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
 import { buildExterior, buildWaterside, buildCampRoom } from './world.js';
 import { mat } from './avatar.js';
 
@@ -303,3 +304,90 @@ function beachChair(color) {   // 바닷가 접이식 비치 체어 (줄무늬 �
 
 // 내 자리: 고른 쉼터 모양 그대로의 안 (돔 · 티피 텐트, 미니밴 · 모터홈, 카바나)
 export function buildShelterRoom(loc) { return buildCampRoom(loc, shelterOf(loc.id)); }
+
+// ───────── 취사장: 지붕 덮인 공동 취사장 (개수대 · 버너 조리대 · 긴 식탁 · 분리수거함) ─────────
+function signTex(title, sub) {
+  const c = document.createElement('canvas'); c.width = 512; c.height = 256; const g = c.getContext('2d');
+  g.fillStyle = '#2f3a33'; g.fillRect(0, 0, 512, 256); g.strokeStyle = '#8a6a4a'; g.lineWidth = 18; g.strokeRect(0, 0, 512, 256);
+  g.fillStyle = '#f4f1ea'; g.textAlign = 'center'; g.font = '400 92px "Ownglyph_UNZ-Rg", sans-serif'; g.fillText(title, 256, 128);
+  g.font = '400 40px "Ownglyph_UNZ-Rg", sans-serif'; g.fillStyle = '#e8d8a8'; g.fillText(sub, 256, 200);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+export function buildCampKitchen(loc) {
+  const w = buildExterior(loc);
+  w.hall.visible = false; w.pagodaSlot.visible = false;
+  w.floor.material = groundMat(loc.id);
+  const g = new THREE.Group(); g.position.set(0, 0, -3); w.group.add(g);
+  const steel = mat('#c9ced3', { metalness: 0.6, roughness: 0.3 }), post = mat('#6e4c30'), roofM = mat('#3f6b55');
+  // 바닥 콘크리트 · 기둥 · 지붕 (가운데가 높은 박공)
+  const slab = new THREE.Mesh(new THREE.BoxGeometry(12, 0.08, 8.5), mat('#b9b2a4', { roughness: 0.95 })); slab.position.y = 0.04; slab.receiveShadow = true; g.add(slab);
+  for (const x of [-5.6, 0, 5.6]) for (const z of [-4, 4]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.22, 3.4, 0.22), post); p.position.set(x, 1.7, z); p.castShadow = true; g.add(p); }
+  for (const s of [-1, 1]) { const r = new THREE.Mesh(new THREE.BoxGeometry(12.6, 0.12, 4.9), roofM); r.position.set(0, 3.75, s * 2.3); r.rotation.x = s * 0.2; r.castShadow = true; g.add(r); }
+  const beam = new THREE.Mesh(new THREE.BoxGeometry(12.2, 0.2, 0.2), post); beam.position.set(0, 4.2, 0); g.add(beam);
+  for (const z of [-4, 4]) { const b = new THREE.Mesh(new THREE.BoxGeometry(11.6, 0.18, 0.18), post); b.position.set(0, 3.35, z); g.add(b); }
+  // 뒤쪽 긴 조리대: 왼쪽 개수대 셋, 오른쪽 버너 둘
+  const counter = new THREE.Mesh(new THREE.BoxGeometry(10, 0.9, 0.8), mat('#8a6a4a')); counter.position.set(0, 0.45, -3.5); counter.castShadow = true; g.add(counter);
+  const top = new THREE.Mesh(new THREE.BoxGeometry(10.1, 0.06, 0.86), steel); top.position.set(0, 0.93, -3.5); g.add(top);
+  for (const x of [-4, -2.7, -1.4]) {
+    const sink = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.05, 0.55), mat('#8f969c', { metalness: 0.7, roughness: 0.2 })); sink.position.set(x, 0.95, -3.45); g.add(sink);
+    const tap = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.35, 8), steel); tap.position.set(x, 1.12, -3.8); g.add(tap);
+    const spout = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.22), steel); spout.position.set(x, 1.28, -3.7); g.add(spout);
+  }
+  const back = new THREE.Mesh(new THREE.BoxGeometry(10, 1.3, 0.08), mat('#e8e2d6')); back.position.set(0, 1.6, -3.92); g.add(back);
+  for (const x of [1.2, 2.8]) {
+    const burner = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.12, 0.6), mat('#2a2a2a')); burner.position.set(x, 1.0, -3.45); g.add(burner);
+    for (const dx of [-0.25, 0.25]) { const ring = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.02, 6, 16), steel); ring.rotation.x = Math.PI / 2; ring.position.set(x + dx, 1.07, -3.45); g.add(ring); }
+  }
+  const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.18, 0.24, 16), steel); pot.position.set(0.95, 1.2, -3.45); g.add(pot);
+  const kettle = new THREE.Mesh(new THREE.SphereGeometry(0.15, 14, 10), mat('#c9572a', { metalness: 0.3 })); kettle.position.set(2.55, 1.2, -3.45); g.add(kettle);
+  const pan = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.2, 0.05, 16), mat('#2a2a2a')); pan.position.set(3.05, 1.12, -3.45); g.add(pan);
+  // 선반 · 걸린 냄비 · 그릇 건조대
+  const shelf = new THREE.Mesh(new THREE.BoxGeometry(9.6, 0.05, 0.35), mat('#a07a50')); shelf.position.set(0, 2.15, -3.75); g.add(shelf);
+  for (let i = 0; i < 9; i++) { const x = -4.2 + i * 1.05, c = ['#f2ece0', '#2f7a96', '#e8b54a', '#a33b2a'][i % 4]; const b = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.08, 0.12, 12), mat(c)); b.position.set(x, 2.24, -3.72); g.add(b); }
+  for (let i = 0; i < 4; i++) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.13, 0.06, 14), steel); p.rotation.x = Math.PI / 2; p.position.set(3.4 + i * 0.35, 1.75, -3.85); g.add(p); }
+  const rack = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.35, 0.35), new THREE.MeshStandardMaterial({ color: '#d9dde0', wireframe: true })); rack.position.set(-0.6, 1.15, -3.45); g.add(rack);
+  for (let i = 0; i < 5; i++) { const d = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.02, 14), mat('#f2ece0')); d.rotation.x = Math.PI / 2; d.position.set(-0.95 + i * 0.17, 1.15, -3.45); g.add(d); }
+  // 표지판
+  const sign = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.8), new THREE.MeshStandardMaterial({ map: signTex('취사장', '설거지는 개수대에서') })); sign.position.set(-2.7, 2.8, -3.85); g.add(sign);
+  // 분리수거함 셋
+  [['#2f7a96', '플라스틱'], ['#3f6b55', '캔 · 병'], ['#c9822a', '종이']].forEach(([c], i) => { const bin = new THREE.Mesh(new RoundedBoxGeometry(0.6, 0.85, 0.55, 3, 0.06), mat(c)); bin.position.set(5.0, 0.45, 1.6 - i * 0.75); bin.castShadow = true; g.add(bin); const lid = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.05, 0.57), mat('#2a2a2a')); lid.position.set(5.0, 0.9, 1.6 - i * 0.75); g.add(lid); });
+  // 물통 · 아이스박스
+  const tank = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.6, 16), mat('#2f7a96')); tank.position.set(-5.0, 0.3, -2.6); g.add(tank);
+  const cooler = new THREE.Mesh(new RoundedBoxGeometry(0.8, 0.45, 0.45, 3, 0.05), mat('#e2603d')); cooler.position.set(-5.0, 0.23, -1.6); g.add(cooler);
+  const clid = new THREE.Mesh(new RoundedBoxGeometry(0.82, 0.08, 0.47, 2, 0.03), mat('#f4f1ea')); clid.position.set(-5.0, 0.48, -1.6); g.add(clid);
+  // 긴 식탁 둘 (벤치 자리 8개씩)
+  const seats = [];
+  const blockers = [{ minX: -5.2, maxX: 5.2, minZ: -7, maxZ: -6.1 }];
+  for (const tz of [-1.0, 2.0]) {
+    const tbl = new THREE.Group(); tbl.position.set(0, 0, tz); g.add(tbl);
+    box(tbl, '#9a7048', 5.2, 0.08, 1.0, 0, 0.76, 0);
+    for (const x of [-2.2, 2.2]) for (const z of [-0.35, 0.35]) box(tbl, '#6e4c30', 0.08, 0.76, 0.08, x, 0.38, z);
+    // 식탁 위 컵 · 양념통 · 랜턴
+    for (let i = 0; i < 4; i++) box(tbl, ['#f2ece0', '#e8b54a', '#a33b2a', '#2f7a96'][i], 0.08, 0.12, 0.08, -1.8 + i * 1.2, 0.86, (i % 2 ? 0.2 : -0.2));
+    const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.22, 10), new THREE.MeshStandardMaterial({ color: '#ffe0a0', emissive: '#ffb74a', emissiveIntensity: 1.2 })); lamp.position.set(0, 0.92, 0); tbl.add(lamp);
+    blockers.push({ minX: -2.6, maxX: 2.6, minZ: tz - 3 - 0.5, maxZ: tz - 3 + 0.5 });
+    for (const s of [-1, 1]) for (let i = 0; i < 4; i++) {
+      const x = -1.8 + i * 1.2, z = tz - 3 + s * 0.85;
+      addSeat(w.group, seats, benchPart(), x, z, s > 0 ? Math.PI : 0, 0.45);
+    }
+  }
+  seats.forEach((st) => (st.y = 0.45));
+  // 전구 줄 · 밤 불빛
+  for (const z of [-4, 4]) fairy(g, -5.6, 5.6, 3.25, z);
+  for (const x of [-3, 3]) { const l = new THREE.PointLight('#ffcf8a', 3, 10, 1.5); l.position.set(x, 3.0, 0); g.add(l); }
+  g.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  return {
+    ...w,
+    door: null, seats,
+    spawn: new THREE.Vector3(0, 0, 6), spawnRot: Math.PI,
+    camDist: 6, camRise: 0.2, camLookY: 1.3,   // 지붕 아래에서 식탁 · 조리대가 보이게 낮게
+    blockers,
+    walkPath: null,
+  };
+}
+function fairy(g, x0, x1, y, z) {
+  const bulb = new THREE.MeshStandardMaterial({ color: '#fff1c0', emissive: '#ffcf6a', emissiveIntensity: 1.6 });
+  const pts = [];
+  for (let i = 0; i <= 16; i++) { const t = i / 16, x = x0 + (x1 - x0) * t, yy = y - Math.sin(Math.PI * ((t * 2) % 1)) * 0.25; pts.push(new THREE.Vector3(x, yy, z)); const b = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), bulb); b.position.set(x, yy - 0.05, z); g.add(b); }
+  g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: '#3a2a20' })));
+}

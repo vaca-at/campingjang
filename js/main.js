@@ -15,7 +15,7 @@ import { buildInterior, buildExterior, buildMealHall, buildRoom, buildBoriamView
 import { Net, preloadNet } from './net.js';
 import { hangScroll, stopScrolls } from './scrolls.js';
 import { setSound, sound, moktak, bowl, coin, bigBell, sfx, setAmbience, TRACKS, setMusic, music } from './audio.js';
-import { buildCampsite, buildShore, buildShelterRoom, SHELTERS, shelterOf } from './camp.js';
+import { buildCampsite, buildShore, buildShelterRoom, buildCampKitchen, SHELTERS, shelterOf } from './camp.js';
 import { addPhoto, listPhotos, removePhoto } from './album.js';
 import { launchFirework, stepFireworks, addToDex, renderDex, loadDex } from './fun.js';
 import { daylight, applyDaylight, glow, dayPart } from './daytime.js';
@@ -146,7 +146,7 @@ const net = new Net({
 });
 
 // ───────── 월드 ─────────
-const BUILDERS = { in: buildCampsite, out: buildShore, meal: buildMealHall, room: buildShelterRoom, boriam: buildBoriamView };
+const BUILDERS = { in: buildCampsite, out: buildShore, meal: buildCampKitchen, room: buildShelterRoom, boriam: buildBoriamView };
 // 창밖 풍경: 바깥 3D 풍경을 법당 자리(건물은 숨기고)에서 네 방향으로 찍어 이어 붙인 사진을 창에 붙여요.
 // 디자인마다 한 번만, 화면이 한가할 때 따로 만든 작은 그림판(렌더러)으로 찍어서 지금 화면은 멈추지 않아요
 const panoDone = new Set();
@@ -352,7 +352,7 @@ async function goScene(which, { instant = false } = {}) {
   S.me.propLift = which === 'room' ? 0.07 : 0;   // 내 방: 책·사경 종이가 책상 위에
   renderActions();   // 장소마다 동작 줄이 달라요
   // 내 방 족자는 들어올 때마다 문구가 바뀐다
-  if (which === 'room' || which === 'meal') hangScroll(world); else stopScrolls();
+  stopScrolls();   // 캠핑장에는 족자가 없어요
   refreshRemoteVisibility();
   updateHud();
   pushState(true);
@@ -1846,7 +1846,7 @@ async function demo(which) {
     const seat = (which === 'in' && rnd() < 0.75) || which === 'meal' ? seats[i] : null;
     const walk = which === 'out' && world.walkPath ? world.walkPath[i % world.walkPath.length] : null;
     const pos = seat ? [seat.pos.x, seat.pos.z] : walk ? [walk.x + (rnd() - 0.5) * 2, walk.z + (rnd() - 0.5) * 2] : [(rnd() - 0.5) * 18, (rnd() - 0.3) * 18];
-    const act = which === 'meal' ? 'eat' : seat ? ['hapjang', 'beads', 'meditate', 'moktak', null][Math.floor(rnd() * 5)] : null;
+    const act = which === 'meal' ? 'eat' : seat ? ['warm', 'roast', 'guitar', 'tea', null][Math.floor(rnd() * 5)] : null;
     handleRemoteState('bot' + i, { n: randomName(), l: look, s: which, p: pos, r: seat ? seat.rot : rnd() * 6, seat: seat ? seat.id : null, y: seat ? seat.y : 0, a: act, at: rnd() * 2 });
   }
   for (const r of S.remotes.values()) { r.seen = Infinity; r.av.group.position.copy(r.pos); if (r.av.seated) r.av.group.position.y = r.seatY; }
