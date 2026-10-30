@@ -666,15 +666,15 @@ function skyDome(top, bottom) {
 // 바깥 하늘: 위·아래 색 사이에 지평선 빛, 흘러가는 구름, 해(낮) · 달과 별(밤).
 // top/bottom 은 daytime.js 가 낮밤에 맞춰 바꾸고, day(0 밤~1 낮)·time 도 넣어 줘요
 const SUN_DIR = new THREE.Vector3(0.42, 0.36, 0.83).normalize();
-function skyDomeHQ(top, bottom, { clouds = 0.55, cloudTint = '#ffffff' } = {}) {
+function skyDomeHQ(top, bottom, { clouds = 0.55, cloudTint = '#ffffff', milky = 0 } = {}) {
   const geo = new THREE.SphereGeometry(900, 48, 24);
   const m = new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false,
     uniforms: { top: { value: new THREE.Color(top) }, bottom: { value: new THREE.Color(bottom) }, day: { value: 1 }, time: { value: 0 },
-      sunDir: { value: SUN_DIR.clone() }, cover: { value: clouds }, cloudTint: { value: new THREE.Color(cloudTint) } },
+      sunDir: { value: SUN_DIR.clone() }, cover: { value: clouds }, cloudTint: { value: new THREE.Color(cloudTint) }, milky: { value: milky } },
     vertexShader: 'varying vec3 vP; void main(){ vP = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }',
     fragmentShader: `
-      uniform vec3 top; uniform vec3 bottom; uniform float day; uniform float time; uniform vec3 sunDir; uniform float cover; uniform vec3 cloudTint;
+      uniform vec3 top; uniform vec3 bottom; uniform float day; uniform float time; uniform vec3 sunDir; uniform float cover; uniform vec3 cloudTint; uniform float milky;
       varying vec3 vP;
       float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
       float vnoise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -701,6 +701,31 @@ function skyDomeHQ(top, bottom, { clouds = 0.55, cloudTint = '#ffffff' } = {}) {
           float md = dot(d, moonDir);
           col = mix(col, vec3(0.96, 0.94, 0.86), smoothstep(0.99955, 0.9998, md) * night);
           col += vec3(0.5, 0.6, 0.8) * pow(max(md, 0.0), 90.0) * 0.18 * night;
+        }
+        // 은하수 (연천 당포성 밤하늘처럼): 나홀로 나무 오른쪽 지평선에서 밝은 중심이 솟아 하늘을 비스듬히 가로질러요.
+        // 지평선은 남보라 → 먼 마을 불빛의 주황으로 번지고, 띠 안쪽엔 잔별이 촘촘
+        if (milky > 0.0 && h > -0.05) {
+          vec3 gc = normalize(vec3(0.42, 0.04, -1.0));
+          vec3 n = normalize(cross(gc, normalize(vec3(-0.55, 1.0, 0.1))));
+          vec3 ax = normalize(cross(n, gc));
+          float b = dot(d, n), along = dot(d, ax);
+          vec2 p = vec2(along * 5.0, b * 11.0);
+          float cloud = fbm(p * 1.3 + 3.0) * 0.6 + fbm(p * 4.0) * 0.4;
+          float band = exp(-pow(b / (0.16 + 0.06 * cloud), 2.0));
+          float core = exp(-pow(b / 0.075, 2.0)) * pow(max(dot(d, gc), 0.0), 4.0);
+          float dust = smoothstep(0.42, 0.72, fbm(p * vec2(1.6, 3.2) + 9.0)) * exp(-pow((b - 0.012) / 0.035, 2.0));
+          vec3 mwc = mix(vec3(0.55, 0.62, 0.95), vec3(1.0, 0.84, 0.66), clamp(core * 1.6, 0.0, 1.0));
+          float fadeH = smoothstep(-0.02, 0.12, h);
+          col += mwc * (band * (0.12 + 0.24 * cloud) + core * 0.85 * cloud) * (1.0 - dust * 0.8) * milky * fadeH;
+          // 잔별: 띠 안에서 훨씬 많이
+          vec2 g2 = vec2(atan(d.z, d.x) * 300.0, h * 600.0);
+          float r2 = hash(floor(g2) + 7.0);
+          float th = mix(0.992, 0.93, band);
+          col += vec3(0.9, 0.93, 1.0) * step(th, r2) * smoothstep(0.32, 0.0, length(fract(g2) - 0.5)) * (0.35 + 0.65 * fract(r2 * 91.0)) * milky * fadeH;
+          // 지평선 빛: 남보라 띠 + 앞쪽 아래 주황빛
+          float lowH = exp(-max(h, 0.0) * 9.0);
+          col += vec3(0.22, 0.12, 0.34) * lowH * 0.55 * milky;
+          col += vec3(1.0, 0.5, 0.22) * exp(-max(h, 0.0) * 22.0) * (0.25 + 0.35 * max(dot(normalize(d.xz), normalize(vec2(0.35, -1.0))), 0.0)) * milky;
         }
         // 구름: 하늘을 평면에 펼쳐 겹겹이 흘러가게
         if (h > 0.0) {
@@ -765,6 +790,7 @@ function mountainLayers(loc) {
   // 가까운 줄은 낮게, 먼 줄일수록 높게 솟아 겹겹이 보이도록 [반지름, 바닥, 높이, 하늘빛에 묻히는 정도]
   const layers = [[470, 18, 55, 0.12], [560, 28, 85, 0.32], [650, 40, 115, 0.5], [740, 52, 140, 0.66], [830, 60, 165, 0.8]];
   layers.forEach(([rad, base, amp, fade], i) => {
+    if (loc.night) { base -= 34; amp *= 0.22; }
     const col = new THREE.Color(near).lerp(sky, fade).getStyle();
     const haze = hazeC.clone().lerp(sky, 0.3 + fade * 0.4).getStyle();
     if (loc.id === 'sea') {
@@ -927,6 +953,31 @@ function heroMaple(seed, size = 1, palette = ['#b8261c', '#d8432a', '#e8762e', '
   return g;
 }
 
+// 당포성 팽나무: 짧고 굵은 줄기가 서너 갈래로 벌어지고, 납작하게 넓게 퍼진 우산 모양 잎
+function loneTree() {
+  const r = rng(404), g = new THREE.Group(), bark = mat('#2e2620');
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 1.1, 4.2, 9), bark); trunk.position.y = 2.1; trunk.castShadow = true; g.add(trunk);
+  const tips = [];
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2 + r() * 0.6, lean = 0.55 + r() * 0.35, len = 5 + r() * 2.5;
+    const limb = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.55, len, 7), bark);
+    limb.position.set(0, 3.8, 0); limb.rotation.set(Math.sin(a) * lean, 0, -Math.cos(a) * lean); limb.translateY(len / 2); limb.castShadow = true; g.add(limb);
+    const tip = new THREE.Vector3(0, len, 0).applyEuler(limb.rotation).add(new THREE.Vector3(0, 3.8, 0)); tips.push(tip);
+  }
+  const n = 420, leaves = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(0.9, 1), new THREE.MeshStandardMaterial({ roughness: 0.9, flatShading: true }), n);
+  const M = new THREE.Matrix4(), q = new THREE.Quaternion(), e = new THREE.Euler(), v = new THREE.Vector3(), sc = new THREE.Vector3(), c = new THREE.Color();
+  const pal = ['#2f4a2c', '#3a5733', '#28402a', '#456337', '#34502f'];
+  for (let i = 0; i < n; i++) {
+    const a = r() * Math.PI * 2, rad = Math.sqrt(r()) * 9.5, y = 8.6 + (1 - (rad / 9.5) ** 2) * 2.6 + (r() - 0.5) * 1.6;
+    v.set(Math.cos(a) * rad, y, Math.sin(a) * rad * 0.85);
+    e.set(r() * 3, r() * 3, r() * 3); q.setFromEuler(e);
+    const k = 0.8 + r() * 0.9; sc.set(k * 1.3, k * 0.75, k * 1.3);
+    M.compose(v, q, sc); leaves.setMatrixAt(i, M);
+    c.set(pal[Math.floor(r() * pal.length)]); leaves.setColorAt(i, c);
+  }
+  leaves.castShadow = true; g.add(leaves);
+  return g;
+}
 // 비치는 물: 거울(Reflector) 위에 얇은 물빛을 한 겹 덮어 너무 거울 같지 않게
 function mirrorWater(geo, tint = '#5d7464', opacity = 0.35) {
   const g = new THREE.Group();
@@ -1187,7 +1238,14 @@ function heightFn(id) {
     return (x, z) => {
       const d = Math.hypot(x, z);
       let h = RW * Math.pow(smooth(R0 - 2, R0 + 140, d), 0.5) + noise(x, z) * 5 * smooth(R0, R0 + 30, d);
-      if (z < 0) h += 40 * smooth(20, 140, -z) + noise(x * 0.8, z * 0.8) * 10 * smooth(20, 60, -z);
+      // 마당 뒤: 풀밭 너머로 당포성 흙 성벽이 길게 솟고, 그 뒤는 임진강 벼랑이라 하늘만 트여요
+      if (z < 0) {
+        const zr = rampartZ(x), dz = z - zr;
+        const meadow = (-1.2 + noise(x, z) * 1.4) * smooth(R0, R0 + 16, d);
+        const crest = 8 * Math.exp(-(dz * dz) / (2 * 12 * 12)) * smooth(200, 130, Math.abs(x - 10));
+        const fall = RW * 0.6 * smooth(-18, -70, dz);
+        h = h + (meadow + crest + fall - h) * smooth(-2, -14, z);
+      }
       if (d > 120) {
         const rd = distToPaths(x, z, arms);
         // 강에서 멀어질수록 둥근 산 (높이는 낮게)
@@ -1199,6 +1257,7 @@ function heightFn(id) {
         const ci = Math.exp(-((x + 20) ** 2 + (z - 200) ** 2) / 260);
         h = Math.max(h, RW + ci * 5);
       }
+      if (z < -20 && z - rampartZ(x) < -14) h = Math.min(h, -6 - (rampartZ(x) - z - 14) * 0.3);
       return h;
     };
   }
@@ -1225,6 +1284,9 @@ function heightFn(id) {
     return h;
   };
 }
+
+// 당포성 성벽 마루선: 양 끝이 마당 쪽으로 살짝 휘어 감싸요
+export const rampartZ = (x) => -84 + x * x * 0.0024;
 
 function riverPaths() {
   // 북한강(왼쪽)과 남한강(오른쪽)이 앞쪽 아래에서 만나 한강이 되어 멀리 흘러가요
@@ -1324,7 +1386,7 @@ function scatterTrees(h, count, seed, { minD = R0 + 3, maxD = 260, autumn = true
 
 export function buildExterior(loc) {
   const g = new THREE.Group();
-  const sky = skyDomeHQ(loc.sky[0], loc.sky[1], { clouds: loc.id === 'sea' ? 0.45 : 0.6 });
+  const sky = skyDomeHQ(loc.sky[0], loc.sky[1], { clouds: loc.night ? 0.12 : loc.id === 'sea' ? 0.45 : 0.6, milky: loc.night ? 1 : 0 });
   g.add(sky, mountainLayers(loc));
   const { mesh: ground, h } = terrain(loc.id);
   g.add(ground);
@@ -1374,7 +1436,7 @@ export function buildExterior(loc) {
     pagodaPos.set(-12, 0, 6);
   }
   if (loc.id === 'river') {
-    g.add(scatterTrees(h, 1500, 9, { minD: R0 + 4, maxD: 640, autumn: true, skip: (x, z) => h(x, z) < RW + 4 || (z > 0 && Math.hypot(x, z) < R0 + 34 && Math.abs(x) < z * 0.8) }));
+    g.add(scatterTrees(h, 1500, 9, { minD: R0 + 4, maxD: 640, autumn: true, skip: (x, z) => h(x, z) < RW + 4 || (z > 0 && Math.hypot(x, z) < R0 + 34 && Math.abs(x) < z * 0.8) || (loc.night && z < 0 && Math.abs(x) < 170) }));
     const paths = riverPaths();
     // 강물: 하늘을 비추는 잔잔한 물 (가까운 곳은 조금 짙게)
     const rGeo = new THREE.PlaneGeometry(2400, 2400, 40, 40); rGeo.rotateX(-Math.PI / 2);
@@ -1388,8 +1450,15 @@ export function buildExterior(loc) {
     const zel = heroMaple(55, 2.4, ['#b8862f', '#c99a3a', '#a7762a', '#d4ab4a']); zel.position.set(mx + 30, h(mx + 30, mz - 30) + 0.2, mz - 30); g.add(zel);
     // 수종사 은행나무: 마당 가장자리에 금빛으로 크게
     const ginkgo = ['#f2c94c', '#f6d65a', '#e8b83a', '#f9e27a', '#d9a62e'];
-    const gk = heroMaple(77, 1.9, ginkgo); gk.position.set(-25, h(-25, 10), 10); g.add(gk);
-    const gk2 = heroMaple(78, 1.4, ginkgo); gk2.position.set(26, h(26, -2), -2); g.add(gk2);
+    if (!loc.night) {
+      const gk = heroMaple(77, 1.9, ginkgo); gk.position.set(-25, h(-25, 10), 10); g.add(gk);
+      const gk2 = heroMaple(78, 1.4, ginkgo); gk2.position.set(26, h(26, -2), -2); g.add(gk2);
+    } else {
+      // 당포성 나홀로 팽나무: 성벽 마루에 혼자, 아래에서 은은한 불빛이 올려 비춰요
+      const tx = 14, tz = rampartZ(tx);
+      const lone = loneTree(); lone.scale.setScalar(1.45); lone.position.set(tx, h(tx, tz) - 0.5, tz); g.add(lone);
+      const up = new THREE.PointLight('#ffb36a', 90, 34, 1.4); up.position.set(tx + 1.5, h(tx, tz) + 2.5, tz + 4); g.add(up);
+    }
     // 물안개: 강 위로 낮게 여러 겹, 천천히 흘러요
     const mistTex = canvasTex(256, 128, (cg, w, hh) => { const rg = cg.createRadialGradient(w / 2, hh / 2, 4, w / 2, hh / 2, w / 2); rg.addColorStop(0, 'rgba(255,255,255,0.9)'); rg.addColorStop(1, 'rgba(255,255,255,0)'); cg.fillStyle = rg; cg.fillRect(0, 0, w, hh); });
     const mr = rng(31);
