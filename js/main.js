@@ -317,6 +317,7 @@ async function goScene(which, { instant = false } = {}) {
   const from = S.scene;
   if (!instant) await fade(true);
   standUp(true);
+  if (S.me?.action) { S.me.stop(); syncActionButtons(); }   // 장소를 옮기면 하던 동작은 멈춰요
   S.walking = false;
   S.target = null;
   S.scene = which;
@@ -1046,6 +1047,8 @@ function showLoading(locId) {
 
 // ───────── 법당 위치 들어가기 ─────────
 async function enterLocation(locId) {
+  // 다른 동네로 가면 하던 동작 · 산보는 멈춰요
+  if (S.me) { stopWalk(); S.stones = null; if (S.me.action) { S.me.stop(); syncActionButtons(); } }
   S.loc = LOCATIONS.find((l) => l.id === locId) || LOCATIONS[0];
   document.body.dataset.site = S.loc.id;   // 단추 색이 디자인을 따라가요
   showLoading(S.loc.id);
@@ -1241,6 +1244,9 @@ canvas.addEventListener('pointerup', (e) => {
     // 불상이나 탑을 누르면 불상·탑 고르기 창
     for (const slot of [w.buddhaSlot, w.pagodaSlot]) if (slot) { let p = o; while (p && p !== slot) p = p.parent; if (p) return openRelics(); }
     if (o === w.floor) {
+      // 의자 바로 옆 바닥을 눌러도 그 의자에 앉아요 (의자 다리가 가늘어서 바닥이 먼저 눌릴 때가 많아요)
+      const near = w.seats?.filter((x) => x.mesh).map((x) => [x, Math.hypot(x.pos.x - h.point.x, x.pos.z - h.point.z)]).sort((a, b) => a[1] - b[1])[0];
+      if (near && near[1] < 1.1) return walkToSeat(near[0]);
       if (S.me.action && !ACTIONS.find((a) => a.id === S.me.action)?.loop) return;
       stopWalk();
       standUp();
@@ -1319,7 +1325,11 @@ function moveMe(dt) {
     const diff = Math.atan2(Math.sin(want - g.rotation.y), Math.cos(want - g.rotation.y));
     g.rotation.y += diff * Math.min(1, dt * 10);
     collide(g.position);
-    if (S.target && !S.walking && g.position.distanceTo(before) < speed * dt * 0.2) S.target = null;
+    if (S.target && !S.walking && g.position.distanceTo(before) < speed * dt * 0.2) {
+      // 탁자 · 모닥불에 막혀 못 가도 의자 가까이면 그냥 앉아요
+      const t = S.target; S.target = null;
+      if (t.onArrive && t.pos.distanceTo(g.position) < 1.6) t.onArrive();
+    }
   }
   me.speed = dir ? g.position.distanceTo(before) / Math.max(dt, 1e-4) : 0;
   // 산보: 세 걸음(한 걸음 약 0.75칸) 걸을 때마다 한 번 합장

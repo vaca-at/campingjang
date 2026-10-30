@@ -208,7 +208,7 @@ function yardSeats(g, seats) {
   const blockers = [];
   const block = (x, z, w, d) => blockers.push({ minX: x - w, maxX: x + w, minZ: z - d, maxZ: z + d });
   // 피크닉 테이블: 양쪽 벤치에 둘씩
-  { const [cx, cz, r] = [-11, 9, 0.5]; picnicTable(g, cx, cz, r); block(cx, cz, 1.1, 1.1);
+  { const [cx, cz, r] = [-11, 9, 0.5]; picnicTable(g, cx, cz, r); block(cx, cz, 0.55, 0.3);   // 벤치에 닿을 수 있게 탁자 가운데만 막아요
     for (const lx of [-0.48, 0.48]) for (const s of [-1, 1]) { const [x, z] = local(cx, cz, r, lx, s * 0.72); addSeat(g, seats, benchPart(), x, z, r + (s > 0 ? Math.PI : 0), 0.45); } }
   // 동그란 탁자 + 캠핑 의자 셋
   { const [cx, cz] = [11, 9]; roundTable(g, cx, cz); block(cx, cz, 0.6, 0.6);
