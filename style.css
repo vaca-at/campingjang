@@ -546,3 +546,6 @@ html body .typing-sheet { width: min(720px, calc(100vw - 32px)); max-width: none
 .dex-card { border: 1px solid var(--line); border-radius: 12px; padding: 8px 10px; background: #fff; display: grid; }
 .dex-card b { font-size: 14.5px; } .dex-card small { font-size: 12px; color: var(--ink-soft); }
 .dex-card.locked { background: #f1ede4; } .dex-card.locked b { color: #b7ad9c; }
+
+/* 로딩 화면은 컨셉을 정할 때까지 숨겨요 */
+#loading { display: none !important; }
