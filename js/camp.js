@@ -244,9 +244,18 @@ function groundMat(id) {
 // 고른 쉼터 모양 (이 기기에 기억)
 export const shelterOf = (locId) => { try { return localStorage.getItem(`campingjang:shelter:${locId}`) || SHELTERS[locId][0][0]; } catch { return SHELTERS[locId][0][0]; } };
 
+// 캠프 마당 바탕 풍경: 산속 · 별밤은 큰법당과 같은 풍경 틀, 바닷가는 해수욕장 바로 뒤 모래밭
+// (캠핑카는 바다 앞에: 앞으로 해변 · 등대 방파제, 뒤로 해송 모래언덕)
+export function yardBase(loc) {
+  if (loc.id !== 'sea') return buildExterior(loc);
+  const w = buildWaterside(loc, 14);
+  const plaza = new THREE.Mesh(new THREE.CircleGeometry(21, 48), mat('#e3d3a8')); plaza.rotation.x = -Math.PI / 2; plaza.position.y = 0.02; plaza.receiveShadow = true; w.group.add(plaza);
+  return { ...w, floor: plaza, hall: new THREE.Group(), pagodaSlot: new THREE.Group(), radius: 19.8, bounds: null, camRise: 0.3, camLookY: 1.6 };
+}
+
 // 캠프 마당
 export function buildCampsite(loc) {
-  const w = buildExterior(loc);
+  const w = yardBase(loc);
   w.hall.visible = false;
   w.floor.material = groundMat(loc.id);
   const slot = new THREE.Group(); slot.position.set(0, 0, -11); w.group.add(slot);
@@ -321,7 +330,7 @@ function signTex(title, sub) {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 }
 export function buildCampKitchen(loc) {
-  const w = buildExterior(loc);
+  const w = yardBase(loc);
   w.hall.visible = false; w.pagodaSlot.visible = false;
   w.floor.material = groundMat(loc.id);
   const g = new THREE.Group(); g.position.set(0, 0, -3); w.group.add(g);

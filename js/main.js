@@ -15,7 +15,7 @@ import { buildInterior, buildExterior, buildMealHall, buildRoom, buildBoriamView
 import { Net, preloadNet } from './net.js';
 import { hangScroll, stopScrolls } from './scrolls.js';
 import { setSound, sound, moktak, bowl, coin, bigBell, sfx, setAmbience, TRACKS, setMusic, music } from './audio.js';
-import { buildCampsite, buildShore, buildShelterRoom, buildCampKitchen, SHELTERS, shelterOf } from './camp.js';
+import { buildCampsite, buildShore, buildShelterRoom, buildCampKitchen, yardBase, SHELTERS, shelterOf } from './camp.js';
 import { addPhoto, listPhotos, removePhoto } from './album.js';
 import { launchFirework, stepFireworks, addToDex, renderDex, loadDex } from './fun.js';
 import { daylight, applyDaylight, glow, dayPart } from './daytime.js';
@@ -159,7 +159,7 @@ function capturePanorama(loc) {
       const r2 = new THREE.WebGLRenderer({ antialias: true });
       r2.setSize(FW, FH, false);
       r2.toneMapping = renderer.toneMapping; r2.toneMappingExposure = 1.15; r2.outputColorSpace = renderer.outputColorSpace;
-      const w = buildExterior(loc);
+      const w = yardBase(loc);   // 바닷가는 해변 마당 풍경으로
       // 마당 위 물건(법당 · 탑 · 난간 · 석등)은 숨기고 먼 풍경만 찍어요
       if (w.hall) w.hall.visible = false;
       if (w.pagodaSlot) w.pagodaSlot.visible = false;

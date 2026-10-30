@@ -1327,7 +1327,7 @@ function terrain(id) {
     p.setY(i, y);
     const d = Math.hypot(x, z);
     tmp.copy(grass);
-    if (id === 'forest') tmp.lerp(autumn, 0.35 + 0.3 * noise(x * 0.7, z * 0.7));
+    if (id === 'forest') tmp.lerp(autumn, 0.08 + 0.08 * noise(x * 0.7, z * 0.7));   // 편백 숲: 땅도 푸르게
     if (d > R0 && d < R0 + 30 && id !== 'forest') tmp.lerp(rock, 0.6);
     if (id === 'sea' && y < -56) tmp.copy(sand);
     if (id === 'river' && y < RW + 3) tmp.copy(sand);
@@ -1352,7 +1352,7 @@ function terrain(id) {
   return { mesh: m, h };
 }
 
-function scatterTrees(h, count, seed, { minD = R0 + 3, maxD = 260, autumn = true, skip } = {}) {
+function scatterTrees(h, count, seed, { minD = R0 + 3, maxD = 260, autumn = true, cypress = false, skip } = {}) {
   const r = rng(seed), G = treeGeos();
   const tm = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, flatShading: true });
   const pine = new THREE.InstancedMesh(G.pine, tm, count), leaf = new THREE.InstancedMesh(G.leaf, tm, count);
@@ -1370,8 +1370,9 @@ function scatterTrees(h, count, seed, { minD = R0 + 3, maxD = 260, autumn = true
     const y = h(x, z);
     const sc = (0.75 + r() * 0.85) * (1 + Math.min(1, d / 300) * 0.35);
     e.set((r() - 0.5) * 0.08, r() * Math.PI * 2, (r() - 0.5) * 0.08); q.setFromEuler(e);
-    const isPine = r() < (autumn ? 0.4 : 0.55);
+    const isPine = r() < (cypress ? 0.85 : autumn ? 0.4 : 0.55);
     s.set(sc, sc * (isPine ? 0.9 + r() * 0.5 : 0.85 + r() * 0.3), sc);
+    if (cypress && isPine) { s.x *= 0.62; s.z *= 0.62; s.y *= 1.45; }   // 편백: 가늘고 길쭉하게
     v.set(x, y - 0.2, z); M.compose(v, q, s);
     // 멀리 있을수록 색이 하늘빛에 살짝 묻히도록 조금 흐리게
     const far = Math.min(1, d / 320) * 0.25;
@@ -1406,7 +1407,7 @@ export function buildExterior(loc) {
   if (loc.id === 'forest') {
     // 연못 둘레와 마당에서 연못까지 가는 길에는 나무를 두지 않아요 (연못·누각이 보이게)
     const pondGap = (x, z) => Math.hypot(x / 40, (z - 62) / 34) < 1 || (z > 18 && z < 50 && Math.abs(x) < 20);
-    g.add(scatterTrees(h, 1100, 5, { maxD: 330, skip: pondGap }));
+    g.add(scatterTrees(h, 1100, 5, { maxD: 330, autumn: false, cypress: true, skip: pondGap }));
     // 단풍 연못 · 누각 · 바위산 (백양사 쌍계루 풍경처럼)
     const pondGeo = new THREE.CircleGeometry(1, 64); pondGeo.scale(30, 18, 1);
     const pond = mirrorWater(pondGeo, '#4e6656', 0.3); pond.position.set(0, -2.25, 64); g.add(pond);
@@ -1416,23 +1417,11 @@ export function buildExterior(loc) {
       const a = (i / 70) * Math.PI * 2, st = new THREE.Mesh(new THREE.DodecahedronGeometry(0.35 + rr() * 0.6, 0), rr() < 0.5 ? pondStone : mat('#a39b8c'));
       st.position.set(Math.cos(a) * 30.5, -2.4 + rr() * 0.3, 64 + Math.sin(a) * 18.5); st.rotation.set(rr() * 3, rr() * 3, rr() * 3); st.scale.y = 0.5; st.receiveShadow = true; g.add(st);
     }
-    const pav = pavilion(1.35); pav.position.set(0, -2.6, 86); pav.rotation.y = Math.PI; g.add(pav);
-    // 누각 옆 단풍 (붉은 · 노랑 · 연두가 섞이게)
-    const autumnMix = [['#b8261c', '#d8432a', '#c9381f', '#e8762e'], ['#f2c23a', '#e8a82e', '#d9b44a', '#c7d06a'], ['#d8432a', '#f2a83a', '#9c2a1e', '#e8762e'], ['#8fae4a', '#b8c45a', '#e0b53a', '#6f9a3e']];
-    [[-24, 80, 1.5, 0], [22, 82, 1.4, 1], [-36, 62, 1.3, 2], [36, 60, 1.4, 3], [-14, 92, 1.2, 1], [14, 94, 1.25, 2], [-30, 44, 1.2, 0], [30, 46, 1.1, 1]].forEach(([x, z, k, p], i) => {
-      const t = heroMaple(30 + i, k, autumnMix[p]); t.position.set(x, h(x, z) - 0.3, z); t.rotation.y = i; g.add(t);
-    });
-    // 마당 양쪽 가까이 액자처럼 늘어진 붉은 단풍
-    for (const [x, z, k] of [[-19, 26, 1.25], [19, 27, 1.15]]) { const t = heroMaple(70 + x, k); t.position.set(x, h(x, z), z); g.add(t); }
+    // 캠핑장: 누각 · 단풍 대신 계곡 둘레로 키 큰 편백이 빽빽하게
+    g.add(scatterTrees(h, 700, 15, { minD: 26, maxD: 140, autumn: false, cypress: true, skip: pondGap }));
     // 뒤쪽 햇빛 받은 바위 봉우리
     const peak = granitePeak(8, 120, 90); peak.position.set(10, h(10, 280) - 6, 280); peak.rotation.y = Math.PI; g.add(peak);
     const peak2 = granitePeak(9, 75, 70, { warm: '#d9b98a' }); peak2.position.set(-110, h(-110, 240) - 6, 240); peak2.rotation.y = Math.PI; g.add(peak2);
-    // 수목원 온실
-    const dome = new THREE.Mesh(new THREE.SphereGeometry(9, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2),
-      new THREE.MeshStandardMaterial({ color: '#cfe7ee', transparent: true, opacity: 0.45, roughness: 0.1, metalness: 0.2 }));
-    dome.position.set(55, h(55, 70), 70); g.add(dome);
-    const ribs = new THREE.Mesh(new THREE.SphereGeometry(9.05, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshBasicMaterial({ color: '#f2f2ee', wireframe: true }));
-    ribs.position.copy(dome.position); g.add(ribs);
     pagodaPos.set(-12, 0, 6);
   }
   if (loc.id === 'river') {
@@ -1964,7 +1953,7 @@ function shoreHeight(id) {
     return (x, z) => {
       let h = 0;
       if (z > 8) h = -(z - 8) * 0.14 - Math.max(0, z - 30) * 0.4;
-      if (z < -10) h += (-z - 10) * 0.35 + noise(x, z) * 3 * smooth(-10, -40, z) + 30 * smooth(-60, -200, z);
+      if (z < -28) h += (-z - 28) * 0.35 + noise(x, z) * 3 * smooth(-28, -58, z) + 30 * smooth(-78, -218, z);   // 모래사장 뒤 해송 모래언덕
       const head = Math.exp(-(((x - 70) / 30) ** 2) - (((z - 30) / 50) ** 2)); h = Math.max(h, head * 26 - 4 + noise(x * 2, z * 2) * 2 * head);
       const head2 = Math.exp(-(((x + 90) / 40) ** 2) - (((z - 10) / 60) ** 2)); h = Math.max(h, head2 * 32 - 4);
       return h;
@@ -2009,7 +1998,7 @@ function reeds(r, n, place) {
   }
   return im;
 }
-export function buildWaterside(loc) {
+export function buildWaterside(loc, off = 0) {
   const id = loc.id, g = new THREE.Group(), animated = [], r = rng(id.length * 97);
   const sky = skyDomeHQ(loc.sky[0], loc.sky[1], { clouds: loc.night ? 0.12 : id === 'sea' ? 0.4 : 0.55, milky: loc.night ? 1 : 0 });
   g.add(sky, mountainLayers(loc));
@@ -2022,7 +2011,7 @@ export function buildWaterside(loc) {
   for (let i = 0; i < p.count; i++) {
     const x = p.getX(i), z = p.getZ(i), y = h(x, z); p.setY(i, y);
     tmp.copy(grass);
-    if (id === 'sea') { if (z > 8) tmp.copy(wetSand); if (z < -12 || y > 2) tmp.lerp(forestC, smooth(-12, -22, z) + smooth(2, 6, y)); }
+    if (id === 'sea') { if (z > 8) tmp.copy(wetSand); if (z < -30 || y > 2) tmp.lerp(forestC, Math.min(1, smooth(-30, -42, z) + smooth(2, 6, y))); }
     else {
       if (y < 0.05 && z > 4) tmp.copy(pebble);
       if (y > 3) tmp.lerp(forestC, 0.6);
@@ -2093,8 +2082,10 @@ export function buildWaterside(loc) {
   Object.assign(sun.shadow.camera, { left: -30, right: 30, top: 30, bottom: -30, near: 1, far: 140 }); sun.shadow.bias = -0.0006;
   g.add(sun, sun.target);
   const sz = SHORE_Z[id];
+  // off: 물가를 앞으로 미는 거리 (캠프 마당은 해변 바로 뒤에 있어서 바다가 조금 앞에 보여요)
+  if (off) { for (const c of [...g.children]) if (c !== sky) c.position.z += off; }
   return {
-    group: g, floor: ground, door: null, h,
+    group: g, floor: ground, door: null, h: off ? (x, z) => h(x, z - off) : h,
     spawn: new THREE.Vector3(0, 0, sz - 5), spawnRot: 0,
     camDist: 7, camRise: 0.3, camLookY: 1.2,
     bounds: { minX: -22, maxX: 22, minZ: -8, maxZ: sz },
