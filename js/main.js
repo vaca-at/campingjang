@@ -15,7 +15,7 @@ import { buildInterior, buildExterior, buildMealHall, buildRoom, buildBoriamView
 import { Net, preloadNet } from './net.js';
 import { hangScroll, stopScrolls } from './scrolls.js';
 import { setSound, sound, moktak, bowl, coin, bigBell, TRACKS, setMusic, music } from './audio.js';
-import { buildCampsite, buildShore } from './camp.js';
+import { buildCampsite, buildShore, SHELTERS, shelterOf } from './camp.js';
 import { launchFirework, stepFireworks, addToDex, renderDex, loadDex } from './fun.js';
 import { daylight, applyDaylight } from './daytime.js';
 
@@ -1006,6 +1006,7 @@ function showLoading(locId) {
 // ───────── 법당 위치 들어가기 ─────────
 async function enterLocation(locId) {
   S.loc = LOCATIONS.find((l) => l.id === locId) || LOCATIONS[0];
+  document.body.dataset.site = S.loc.id;   // 단추 색이 디자인을 따라가요
   showLoading(S.loc.id);
   for (const id of [...S.remotes.keys()]) removeRemote(id, false);
   const started = performance.now();
@@ -1456,6 +1457,12 @@ document.addEventListener('click', (e) => {
   if (t.dataset.close) { $('#' + t.dataset.close).hidden = true; return; }
   if (t.dataset.act) return doAction(t.dataset.act);
   if (t.dataset.scene) { document.body.classList.remove('show-scenes'); stopWalk(); if (t.dataset.scene !== S.scene) goScene(t.dataset.scene); return; }
+  if (t.dataset.shelter) {
+    try { localStorage.setItem(`campingjang:shelter:${S.loc.id}`, t.dataset.shelter); } catch {}
+    S.worlds[S.loc.id]?.in?.setShelter?.(t.dataset.shelter);
+    document.querySelectorAll('[data-shelter]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.shelter === t.dataset.shelter)));
+    return;
+  }
   if (t.dataset.place) { $('#places').hidden = true; return changeDesign(t.dataset.place); }
   if (t.dataset.server) { $('#server-modal').hidden = true; return switchServer(+t.dataset.server); }
   const pick = ['body', 'type', 'skin', 'outfit', 'acc', 'gender', 'pet'].find((k) => t.dataset[k] != null);
@@ -1509,6 +1516,10 @@ function togglePick() {
   const r = $('#side-place').getBoundingClientRect();
   $('#pick-pop').style.top = `${Math.max(8, Math.min(r.top, innerHeight - 260))}px`;
   $('#pick-design').innerHTML = LOCATIONS.map((l) => `<button data-place="${l.id}" aria-pressed="${S.loc?.id === l.id}">${l.name}</button>`).join('');
+  // 쉼터 모양 고르기 (텐트: 돔 · 티피, 캠핑카: 미니밴 · 모터홈)
+  const sh = S.loc && SHELTERS[S.loc.id];
+  $('#pick-shelter').innerHTML = sh && sh.length > 1 ? sh.map(([id, nm]) => `<button data-shelter="${id}" aria-pressed="${shelterOf(S.loc.id) === id}">${nm}</button>`).join('') : '';
+  $('#pick-shelter-h').hidden = !(sh && sh.length > 1);
   $('#pick-server').innerHTML = Array.from({ length: SERVER_COUNT }, (_, i) => `<button data-server="${i + 1}" aria-pressed="${S.server === i + 1}">${i + 1}</button>`).join('');
 }
 $('#side-place').onclick = togglePick;
@@ -1601,11 +1612,11 @@ async function takePhoto() {
   const g = c.getContext('2d');
   g.drawImage(canvas, 0, 0);
   const fs = Math.round(Math.max(c.width, c.height) / 48);
-  g.font = `700 ${fs}px "Gowun Batang", serif`;
+  g.font = `700 ${fs}px "Gaegu", sans-serif`;
   g.textAlign = 'right';
   g.fillStyle = 'rgba(255, 255, 255, .9)';
   g.shadowColor = 'rgba(0, 0, 0, .45)'; g.shadowBlur = fs / 2;
-  g.fillText('큰법당 템플스테이 · templestay.site', c.width - fs, c.height - fs);
+  g.fillText('캠핑장 · campingjang.site', c.width - fs, c.height - fs);
   const flash = $('#photo-flash');
   flash.classList.remove('on'); void flash.offsetWidth; flash.classList.add('on');
   const blob = await new Promise((r) => c.toBlob(r, 'image/png'));
@@ -1776,7 +1787,7 @@ document.addEventListener('focusout', () => setTimeout(() => { if (visualViewpor
 
 (async () => {
   if (!params.has('demo') && !params.has('gallery')) preloadNet();
-  try { await Promise.race([document.fonts.load('700 40px "Gowun Batang"'), sleep(2500)]); } catch {}
+  try { await Promise.race([document.fonts.load('700 40px "Gaegu"'), sleep(2500)]); } catch {}
   loop();
   if (params.get('gallery')) return gallery(params.get('gallery'));
   if (params.get('demo')) return demo(params.get('demo'));

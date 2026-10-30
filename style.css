@@ -9,7 +9,9 @@
   --jade-soft: #e3efe9;
   --vermilion: #b8463f;
   --gold: #c9953a;
-  --display: "Gowun Batang", "Nanum Myeongjo", serif;
+  --display: "Gaegu", "Gowun Dodum", "Apple SD Gothic Neo", sans-serif;
+  /* 화면 단추 색: 디자인마다 다른 반투명 (텐트 숲 초록 · 캠핑카 바다 청록 · 카바나 밤하늘 남색). main.js 가 body[data-site] 로 바꿔요 */
+  --btn: 30, 58, 42;
   --body: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   --radius: 18px;
   color-scheme: light;
@@ -121,7 +123,7 @@ button .cap { display: block; font-size: 10px; line-height: 1.3; font-weight: 40
 #btn-wish { background: #fff6e4; border-color: #e8c98a; }
 /* 108배 횟수: 오른쪽 상황 단추와 겹치지 않게 위쪽 가운데 (발우공양 시계와 같은 자리·모양, 둘은 함께 나오지 않음) */
 /* 108배 칸: 위 줄(동시접속자·단추) 바로 아래 가운데. 휴대폰에서 위 줄과 겹치지 않게 */
-#bae-counter { position: absolute; top: calc(max(12px, env(safe-area-inset-top)) + 54px); left: 50%; transform: translateX(-50%); border-radius: 16px; padding: 8px 16px; display: flex; align-items: baseline; gap: 8px; background: rgba(18, 16, 15, .55); color: #fff; border: 1px solid rgba(255, 255, 255, .14); box-shadow: none; font-family: var(--display); font-variant-numeric: tabular-nums; }
+#bae-counter { position: absolute; top: calc(max(12px, env(safe-area-inset-top)) + 54px); left: 50%; transform: translateX(-50%); border-radius: 16px; padding: 8px 16px; display: flex; align-items: baseline; gap: 8px; background: rgba(var(--btn), .58); color: #fff; border: 1px solid rgba(255, 255, 255, .14); box-shadow: none; font-family: var(--display); font-variant-numeric: tabular-nums; }
 #bae-counter b { font-size: 22px; }
 #bae-counter small { font-size: 12px; opacity: .8; }
 #bae-counter[hidden] { display: none; }
@@ -243,16 +245,16 @@ body:not(.admin) .place .stay { display: none !important; }
 
 /* 왼쪽 도형 단추(도형만) · 아래 동작 칸(글씨만): 반투명 먹색 하나로, 글씨는 고운바탕 */
 #side-btns { position: absolute; left: max(12px, env(safe-area-inset-left)); top: 50%; transform: translateY(-50%); display: grid; gap: 8px; }
-#side-btns button, #actions .act { background: rgba(18, 16, 15, .55); color: #fff; border: 1px solid rgba(255, 255, 255, .14); }
+#side-btns button, #actions .act { background: rgba(var(--btn), .58); color: #fff; border: 1px solid rgba(255, 255, 255, .14); }
 #side-btns button { width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; }
 #side-btns svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 #side-btns .cap { display: none; }
-#side-btns button:hover, #actions .act:hover { background: rgba(18, 16, 15, .72); }
+#side-btns button:hover, #actions .act:hover { background: rgba(var(--btn), .78); }
 #actions { background: none; border: 0; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; gap: 6px; counter-reset: act; }
 #actions .act { counter-increment: act; position: relative; min-width: 62px; height: 50px; padding: 0 12px; border-radius: 14px; align-content: center; font-family: var(--display); font-weight: 700; font-size: 14.5px; }
 #actions .act svg { display: none; }
 #actions .act::before { content: counter(act); position: absolute; left: 6px; top: 3px; font-family: var(--body); font-weight: 400; font-size: 10px; opacity: .7; }
-#actions .act[aria-pressed="true"] { background: rgba(18, 16, 15, .72); color: #fff; outline: 2px solid #fff; outline-offset: -2px; }
+#actions .act[aria-pressed="true"] { background: rgba(var(--btn), .78); color: #fff; outline: 2px solid #fff; outline-offset: -2px; }
 @media (pointer: coarse) { #side-btns { top: 40%; } }
 @media (max-height: 520px) { #side-btns { gap: 6px; } #side-btns button { width: 42px; height: 42px; } }
 
@@ -279,11 +281,11 @@ body:not(.admin) .place .stay { display: none !important; }
 /* 홈 화면에 추가 안내 */
 .install-steps { margin: 4px 0 8px; padding-left: 20px; display: grid; gap: 6px; font-size: 14px; line-height: 1.55; }
 /* 동시접속자: 위 오른쪽 소리 단추 옆, 초록 점 + 인원 (모두에게 보임) */
-#online-pill { display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 12px; border-radius: 14px; background: rgba(18, 16, 15, .55); color: #fff; border: 1px solid rgba(255, 255, 255, .14); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+#online-pill { display: inline-flex; align-items: center; gap: 6px; height: 44px; padding: 0 12px; border-radius: 14px; background: rgba(var(--btn), .58); color: #fff; border: 1px solid rgba(255, 255, 255, .14); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 #online-pill i { width: 8px; height: 8px; border-radius: 50%; background: #5fd38a; box-shadow: 0 0 0 3px rgba(95, 211, 138, .25); }
 #online-pill b { font-size: 15px; }
 #online-pill { cursor: pointer; font-family: inherit; }
-#online-pill[aria-expanded="true"] { background: rgba(18, 16, 15, .78); border-color: rgba(95, 211, 138, .6); }
+#online-pill[aria-expanded="true"] { background: rgba(var(--btn), .84); border-color: rgba(95, 211, 138, .6); }
 /* 접속인원 누르면 나오는 이름 목록 */
 .hud-right { position: relative; }
 #online-list { position: absolute; top: calc(100% + 8px); right: 0; z-index: 30; width: min(260px, calc(100vw - 32px)); max-height: min(60vh, 420px); overflow-y: auto; padding: 10px 6px 6px; border-radius: 16px; }
@@ -316,7 +318,7 @@ body:not(.admin) .place .stay { display: none !important; }
    위 왼쪽 칩은 없애고(디자인 · 서버는 왼쪽 위치 단추), 위 오른쪽은 소리 · 메뉴 아이콘 둘, 장소 줄은 왼쪽 위 세로로 */
 #server-chip, #design-chip { display: none !important; }
 #hud button, #hud .toast, #menu { font-family: var(--display); }
-.hud-right .icon-btn, #context-btns .ctx, #scene-bar, #welcome, #menu, #pick-pop { background: rgba(18, 16, 15, .55); color: #fff; border: 1px solid rgba(255, 255, 255, .14); box-shadow: none; }
+.hud-right .icon-btn, #context-btns .ctx, #scene-bar, #welcome, #menu, #pick-pop { background: rgba(var(--btn), .58); color: #fff; border: 1px solid rgba(255, 255, 255, .14); box-shadow: none; }
 .hud-right .icon-btn .cap, #context-btns .ctx .cap { display: none; }
 .hud-right .icon-btn { width: 44px; height: 44px; padding: 0; place-items: center; align-content: center; border-radius: 14px; }
 #context-btns { bottom: calc(max(14px, env(safe-area-inset-bottom)) + 70px); }
@@ -332,7 +334,7 @@ body:not(.admin) .place .stay { display: none !important; }
 #side-btns { top: calc(max(12px, env(safe-area-inset-top)) + 192px); transform: none; }
 @media (pointer: coarse) { #side-btns { top: calc(max(12px, env(safe-area-inset-top)) + 192px); } }
 /* 위치 단추 옆 작은 창: 디자인 이름 · 서버 번호만 */
-#pick-pop { display: none; position: absolute; z-index: 20; left: calc(max(12px, env(safe-area-inset-left)) + 62px); top: calc(max(12px, env(safe-area-inset-top)) + 192px); width: 224px; padding: 10px; border-radius: 14px; gap: 6px; background: rgba(18, 16, 15, .78); }
+#pick-pop { display: none; position: absolute; z-index: 20; left: calc(max(12px, env(safe-area-inset-left)) + 62px); top: calc(max(12px, env(safe-area-inset-top)) + 192px); width: 224px; padding: 10px; border-radius: 14px; gap: 6px; background: rgba(var(--btn), .84); }
 body.show-pick #pick-pop { display: grid; }
 body.show-pick #side-place { outline: 2px solid #fff; outline-offset: -2px; }
 #pick-pop > b { font-size: 12px; opacity: .7; }
@@ -405,7 +407,7 @@ body.show-pick #side-place { outline: 2px solid #fff; outline-offset: -2px; }
 }
 
 /* 발우공양 10분 시계와 다 먹은 뒤 묻는 창 */
-#meal-timer { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); border-radius: 16px; padding: 8px 16px; display: flex; align-items: baseline; gap: 8px; background: rgba(18, 16, 15, .55); color: #fff; border: 1px solid rgba(255, 255, 255, .14); box-shadow: none; font-family: var(--display); font-variant-numeric: tabular-nums; }
+#meal-timer { position: absolute; top: max(12px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); border-radius: 16px; padding: 8px 16px; display: flex; align-items: baseline; gap: 8px; background: rgba(var(--btn), .58); color: #fff; border: 1px solid rgba(255, 255, 255, .14); box-shadow: none; font-family: var(--display); font-variant-numeric: tabular-nums; }
 #meal-timer b { font-size: 22px; }
 #meal-timer small { font-size: 12px; opacity: .8; }
 #meal-done { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(max(14px, env(safe-area-inset-bottom)) + 206px); width: min(400px, calc(100% - 24px)); border-radius: 20px; padding: 14px 18px; display: grid; gap: 6px; justify-items: center; text-align: center; background: rgba(18, 16, 15, .62); color: #fff; border: 1px solid rgba(255, 255, 255, .14); box-shadow: none; font-family: var(--display); }
@@ -424,7 +426,7 @@ body.photo #photo-bar { display: flex; position: fixed; z-index: 25; left: 0; ri
 #photo-shoot { width: 72px; height: 72px; border-radius: 50%; border: 4px solid #fff; background: rgba(255, 255, 255, .25); display: grid; place-items: center; box-shadow: 0 4px 20px rgba(0, 0, 0, .3); }
 #photo-shoot i { width: 54px; height: 54px; border-radius: 50%; background: #fff; transition: transform .1s; }
 #photo-shoot:active i { transform: scale(.9); }
-.photo-btn { min-width: 72px; height: 44px; padding: 0 16px; border-radius: 999px; background: rgba(18, 16, 15, .55); color: #fff; border: 1px solid rgba(255, 255, 255, .14); display: grid; place-items: center; font-size: 15px; }
+.photo-btn { min-width: 72px; height: 44px; padding: 0 16px; border-radius: 999px; background: rgba(var(--btn), .58); color: #fff; border: 1px solid rgba(255, 255, 255, .14); display: grid; place-items: center; font-size: 15px; }
 .photo-spacer { visibility: hidden; }
 .photo-hint { position: absolute; left: 0; right: 0; bottom: 86px; margin: 0; text-align: center; color: #fff; font-size: 13px; text-shadow: 0 1px 6px rgba(0, 0, 0, .55); }
 body.photo #photo-flash { display: block; position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 26; }
@@ -473,7 +475,7 @@ body.photo #photo-flash { display: block; position: fixed; inset: 0; background:
   html body #context-btns .ctx { padding: 12px 22px; font-size: 16px; }
   html body #context-btns .ctx { width: 128px; }
 }
-#btn-sanbo[aria-pressed="true"] { outline: 2px solid #fff; outline-offset: -2px; background: rgba(18, 16, 15, .78); }
+#btn-sanbo[aria-pressed="true"] { outline: 2px solid #fff; outline-offset: -2px; background: rgba(var(--btn), .84); }
 
 /* 법당 음악 카드: 두 칸 격자 (휴대폰은 한 칸), 모든 카드 높이·칸 맞춤 */
 .music-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
@@ -534,7 +536,7 @@ html body .typing-sheet { width: min(720px, calc(100vw - 32px)); max-width: none
 @media (max-width: 520px) { .ty-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 /* 표정 고르기 */
-#face-pop { position: absolute; left: calc(max(12px, env(safe-area-inset-left)) + 62px); top: 50%; transform: translateY(-50%); display: flex; gap: 4px; padding: 6px; border-radius: 16px; background: rgba(18, 16, 15, .7); }
+#face-pop { position: absolute; left: calc(max(12px, env(safe-area-inset-left)) + 62px); top: 50%; transform: translateY(-50%); display: flex; gap: 4px; padding: 6px; border-radius: 16px; background: rgba(var(--btn), .72); }
 #face-pop[hidden] { display: none; }
 #face-pop button { width: 44px; height: 44px; font-size: 26px; border-radius: 12px; background: transparent; border: 0; cursor: pointer; }
 #face-pop button:hover { background: rgba(255,255,255,.14); }
@@ -549,3 +551,10 @@ html body .typing-sheet { width: min(720px, calc(100vw - 32px)); max-width: none
 
 /* 로딩 화면은 컨셉을 정할 때까지 숨겨요 */
 #loading { display: none !important; }
+
+body[data-site="forest"] { --btn: 30, 58, 42; }
+body[data-site="sea"] { --btn: 18, 62, 74; }
+body[data-site="river"] { --btn: 28, 30, 66; }
+/* 개구체는 획이 가늘어 단추 글씨를 조금 크고 굵게 */
+#hud button, #hud .toast, #menu, .act, #scene-bar button, .ctx { font-weight: 700; letter-spacing: .01em; }
+#scene-bar button, #actions .act, #context-btns .ctx { font-size: 16.5px; }
