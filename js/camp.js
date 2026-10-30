@@ -222,7 +222,7 @@ function yardSeats(g, seats) {
     for (const lx of [-1, 0, 1]) { const [x, z] = local(cx, cz, r, lx, 0); addSeat(g, seats, logSeat(), x, z, r, 0.45); } }
   // 혼자 앉는 자리: 그루터기 둘, 풍경 보는 릴렉스 체어 둘, 캠핑 의자 하나
   for (const [x, z] of [[7, 13], [8.5, 12]]) addSeat(g, seats, stump(), x, z, faceTo(x, z, 0, 3), 0.4);
-  addSeat(g, seats, relaxChair('#6b5a9a'), 15.5, -2, faceTo(15.5, -2, 40, -2), 0.32);
+  addSeat(g, seats, relaxChair('#6b5a9a'), 17, -10, faceTo(17, -10, 40, -14), 0.32);
   addSeat(g, seats, relaxChair('#2f7a96'), -16, 14, faceTo(-16, 14, -30, 30), 0.32);
   addSeat(g, seats, campChair('#3f6b55'), 10, -8, faceTo(10, -8, 30, -20));
   return blockers;
@@ -279,6 +279,26 @@ export function buildCampsite(loc) {
   const blockM = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 0.5, 12), mat('#7a5232')); blockM.position.y = 0.25; blockM.castShadow = true; pile.add(blockM);
   for (let r = 0; r < 3; r++) for (let i = 0; i < 5 - r; i++) { const lg = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 1.0, 8), mat(i % 2 ? '#8a5a34' : '#6e4a2c')); lg.rotation.x = Math.PI / 2; lg.position.set(-1.3 + i * 0.28 + r * 0.14, 0.13 + r * 0.24, -0.4); lg.castShadow = true; pile.add(lg); }
   yardBlockers.push({ minX: -7.8, maxX: -5.8, minZ: -7.0, maxZ: -5.8 });
+  // 해먹: 기둥 둘 사이 (x 방향으로 걸려 있어요)
+  const ham = new THREE.Group(); ham.position.set(-12, 0, -10); w.group.add(ham);
+  for (const x of [-2.1, 2.1]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 2.0, 10), mat('#6e4c30')); p.position.set(x, 1.0, 0); p.castShadow = true; ham.add(p); }
+  const cloth = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 3.0, 16, 1, true, Math.PI * 0.6, Math.PI * 0.8), new THREE.MeshStandardMaterial({ color: '#e2603d', side: THREE.DoubleSide, map: (() => { const c = document.createElement('canvas'); c.width = 64; c.height = 8; const x = c.getContext('2d'); ['#e2603d', '#f4f1ea', '#2f7a96', '#f4f1ea', '#e8b54a', '#f4f1ea'].forEach((col, i) => { x.fillStyle = col; x.fillRect(0, 0, 64, 8); }); for (let i = 0; i < 8; i++) { x.fillStyle = ['#e2603d', '#f4f1ea', '#2f7a96', '#e8b54a'][i % 4]; x.fillRect(i * 8, 0, 8, 8); } const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })() }));
+  cloth.rotation.z = Math.PI / 2; cloth.position.set(0, 1.15, 0); cloth.scale.set(1, 1, 0.9); cloth.castShadow = true; ham.add(cloth);
+  for (const s of [-1, 1]) { const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.75, 6), mat('#d8d0c0')); rope.position.set(s * 1.75, 1.45, 0); rope.rotation.z = s * 1.0; ham.add(rope); }
+  yardBlockers.push({ minX: -14.3, maxX: -13.9, minZ: -10.3, maxZ: -9.7 }, { minX: -10.1, maxX: -9.7, minZ: -10.3, maxZ: -9.7 });
+  // 배드민턴 · 캐치볼 마당: 하얀 선과 낮은 그물 (양쪽 끝에 서요)
+  const court = new THREE.Group(); court.position.set(12, 0.03, 1); w.group.add(court);
+  const line = mat('#f4f1ea');
+  for (const [x, z, sx, sz] of [[-2.2, 0, 0.08, 9], [2.2, 0, 0.08, 9], [0, -4.5, 4.48, 0.08], [0, 4.5, 4.48, 0.08], [0, 0, 4.4, 0.06]]) { const l = new THREE.Mesh(new THREE.BoxGeometry(sx, 0.01, sz), line); l.position.set(x, 0, z); court.add(l); }
+  for (const x of [-2.4, 2.4]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.55, 8), mat('#3a3f45')); p.position.set(x, 0.78, 0); court.add(p); }
+  const netM = new THREE.Mesh(new THREE.PlaneGeometry(4.8, 0.6), new THREE.MeshStandardMaterial({ color: '#f4f4f4', transparent: true, opacity: 0.45, side: THREE.DoubleSide })); netM.position.set(0, 1.25, 0); court.add(netM);
+  const tape = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.05, 0.02), line); tape.position.set(0, 1.55, 0); court.add(tape);
+  yardBlockers.push({ minX: 9.4, maxX: 14.6, minZ: 0.85, maxZ: 1.15 });
+  // 별자리 찾기 매트 (누울 때만 펴져요)
+  const mat2 = new THREE.Group(); mat2.position.set(6, 0, -4.9); w.group.add(mat2);
+  const pad = new THREE.Mesh(new RoundedBoxGeometry(1.0, 0.05, 2.0, 2, 0.02), mat('#2f3e66')); pad.position.y = 0.03; mat2.add(pad);
+  const pil = new THREE.Mesh(new RoundedBoxGeometry(0.5, 0.1, 0.3, 3, 0.04), mat('#f2ece0')); pil.position.set(0, 0.09, -0.8); mat2.add(pil);
+  mat2.scale.z = 0.01; mat2.visible = false;
   const baseUpdate = w.update;
   return {
     ...w,
@@ -288,7 +308,15 @@ export function buildCampsite(loc) {
     campfire: fire.group,
     setShelter,
     // 동작마다 걸어가서 하는 자리 (x, z, 바라보는 쪽, 옆으로 흩어지는 폭)
-    spots: { chop: { x: -6.2, z: -5.3, rot: Math.PI }, fireworks: { x: 0, z: 11, rot: Math.PI, jx: 3 } },
+    spots: {
+      chop: { x: -6.2, z: -5.3, rot: Math.PI }, fireworks: { x: 0, z: 11, rot: Math.PI, jx: 3 },
+      hammock: { x: -12.8, z: -10, rot: -Math.PI / 2, y: 0.78 },
+      stargaze: { x: 6, z: -4.1, rot: 0, y: 0.06 },
+      // 코트 양쪽 끝: 비어 있는 쪽으로 가요
+      badminton: [{ x: 12, z: -2.5, rot: 0 }, { x: 12, z: 4.5, rot: Math.PI }],
+      catchball: [{ x: 12, z: -3.0, rot: 0 }, { x: 12, z: 5.0, rot: Math.PI }],
+    },
+    beddings: { stargaze: mat2 },
     spawn: new THREE.Vector3(0, 0, 8.5), spawnRot: Math.PI,
     camDist: 7, camRise: 0.32, camLookY: 1.6,
     blockers: [{ minX: -3.4, maxX: 3.4, minZ: -14, maxZ: -8 }, { minX: -1.1, maxX: 1.1, minZ: 1.9, maxZ: 4.1 }, ...yardBlockers],

@@ -531,6 +531,11 @@ function freeSeat(seats, random = true) {
 
 // ───────── 동작 ─────────
 const ICONS = {
+  hammock: '<path d="M3 6v14M21 6v14" stroke="currentColor" stroke-width="1.8"/><path d="M3 9c5 7 13 7 18 0v2c-5 7-13 7-18 0z"/>',
+  badminton: '<circle cx="8" cy="8" r="4.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 11l7 7" stroke="currentColor" stroke-width="2"/><path d="M17 4l2 4-3 1z"/>',
+  catchball: '<circle cx="12" cy="12" r="7" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M7 7c3 3 3 7 0 10M17 7c-3 3-3 7 0 10" fill="none" stroke="currentColor" stroke-width="1.3"/>',
+  bubbles: '<circle cx="9" cy="10" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/><circle cx="16" cy="7" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="16" cy="15" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/>',
+  stargaze: '<path d="M12 3l1.8 4.2 4.5.4-3.4 3 1 4.4L12 12.8 8.1 15l1-4.4-3.4-3 4.5-.4z"/><path d="M4 20h16" stroke="currentColor" stroke-width="1.8"/>',
   diary: '<path d="M6 3h10l3 3v15H6z"/><path d="M9 9h7M9 13h7M9 17h4" stroke="#fff" stroke-width="1.4"/>',
   hapjang: '<path d="M12 3c-1 2-2 5-2 9v6h4v-6c0-4-1-7-2-9z M9 18h6v2H9z"/>',
   banbae: '<circle cx="12" cy="5" r="2.2"/><path d="M12 8c-3 1-5 4-5 7h3l2-3 2 3h3c0-3-2-6-5-7z"/>',
@@ -574,12 +579,18 @@ function doAction(id) {
     return;
   }
   // 캠핑장: 그 동작을 하는 자리(개수대 · 버너 · 장작더미 · 물가 · 이불 …)까지 걸어가서 시작해요
-  const spot = S.active.spots?.[id];
+  let spot = S.active.spots?.[id];
+  // 자리가 여럿이면(코트 양쪽) 다른 사람이 덜 가까운 쪽으로
+  if (Array.isArray(spot)) {
+    const others = [...S.remotes.values()].filter((r) => r.st.s === S.scene).map((r) => r.av.group.position);
+    spot = spot.map((p) => [p, Math.min(99, ...others.map((o) => Math.hypot(o.x - p.x, o.z - p.z)))]).sort((a, b) => b[1] - a[1])[0][0];
+  }
   if (spot && S.me.action !== id && spotArrived !== id) {
     const to = new THREE.Vector3(spot.x + (Math.random() - 0.5) * (spot.jx || 0), 0, spot.z);
+    S.spotY = spot.y;
     if (to.distanceTo(S.me.group.position.clone().setY(0)) > 0.35) {
       standUp(); if (S.me.action) S.me.stop();
-      S.target = { pos: to, speed: SEAT_SPEED, face: spot.rot, onArrive: () => { spotArrived = id; doAction(id); spotArrived = null; } };
+      S.target = { pos: to, speed: SPEED, face: spot.rot, onArrive: () => { spotArrived = id; doAction(id); spotArrived = null; } };
       syncActionButtons();
       return;
     }
@@ -601,7 +612,9 @@ function doAction(id) {
   if (S.scene === 'room' && S.active.napSpot) {
     if (on && id === 'nap') { S.seat = null; S.me.seated = false; const n = S.active.napSpot; S.me.group.position.copy(n.pos); S.me.group.rotation.y = n.rot; }   // 이불 위로 (이불은 아래 그리기에서 펴져요)
     else if (S.me.group.position.y > 0.01 && !S.me.seated) { S.me.group.position.y = 0; sitOn(S.active.seats[0], { auto: true }); }
-  }
+  } else if (on && spotArrived === id && S.spotY != null) { S.seat = null; S.me.seated = false; S.me.group.position.y = S.spotY; }   // 해먹 · 매트 위로
+  else if (!on || !['hammock', 'stargaze'].includes(id)) { if (S.me.group.position.y > 0.01 && !S.me.seated && S.scene !== 'room') S.me.group.position.y = 0; }
+  if (on && id === 'stargaze' && dayNow() > 0.5) toast('별은 해가 진 뒤에 잘 보여요. 낮에는 구름 구경!');
   if (on && id === 'fireworks') { launchFirework(scene, S.me.group.position); addRecord('fireworks', 1); }
   if (on && (id === 'keunjeol' || id === 'banbae')) { bowl(0.4); addRecord('bows', 1); }
   $('#bae-counter').hidden = !(on && id === 'bae108');
@@ -765,16 +778,6 @@ function stepCatch(dt = 0.016) {
     catchKey = null; wander = null; return;
   }
   const t = S.me.actionT, n = Math.floor(t / c.period), u = t - n * c.period;
-  // 곤충 잡기: 처음 선 자리 둘레를 8자로 천천히 돌아다녀요
-  if (a === 'bugs' && S.seat == null) {
-    const g = S.me.group;
-    wander ||= g.position.clone();
-    const p = wander.clone().add(new THREE.Vector3(Math.sin(t * 0.3) * 2.4, 0, Math.sin(t * 0.6) * 1.4));
-    collide(p);
-    const d = p.clone().sub(g.position);
-    if (d.lengthSq() > 1e-6) g.rotation.y = Math.atan2(d.x, d.z);
-    g.position.copy(p);
-  }
   if (n >= 1 && catchKey !== `${a}:${n}`) {
     catchKey = `${a}:${n}`;
     if (Math.random() < c.chance) {
@@ -788,6 +791,83 @@ function stepCatch(dt = 0.016) {
   if (catchHold > 0) { catchHold -= dt; return; }
   catchStatus(c, u > c.period - 3 ? c.near : c.find);
 }
+// 돌아다니며 하는 동작(곤충 잡기 · 비눗방울): 처음 선 자리 둘레 5m 안에서 여기저기 걸어가고, 가서는 잠깐 멈춰요
+let wanderAt = null, wanderTo = null, wanderWait = 0;
+function stepWander(dt) {
+  const a = S.me?.action;
+  if (!['bugs', 'bubbles'].includes(a) || S.seat != null || S.target || S.walking) { wanderAt = wanderTo = null; return; }
+  const g = S.me.group;
+  wanderAt ||= g.position.clone();
+  if (wanderWait > 0) { wanderWait -= dt; return; }
+  if (!wanderTo) {
+    const ang = Math.random() * Math.PI * 2, r = 1.5 + Math.random() * 3.5;
+    wanderTo = wanderAt.clone().add(new THREE.Vector3(Math.cos(ang) * r, 0, Math.sin(ang) * r)); collide(wanderTo);
+  }
+  const d = wanderTo.clone().sub(g.position).setY(0), len = d.length(), sp = a === 'bugs' ? 1.6 : 0.9;
+  if (len < 0.15) { wanderTo = null; wanderWait = 0.8 + Math.random() * 1.6; return; }
+  const step = Math.min(len, sp * dt);
+  g.position.addScaledVector(d.normalize(), step); collide(g.position);
+  const want = Math.atan2(d.x, d.z), diff = Math.atan2(Math.sin(want - g.rotation.y), Math.cos(want - g.rotation.y));
+  g.rotation.y += diff * Math.min(1, dt * 6);
+  S.me.speed = sp;
+}
+
+// 배드민턴 · 캐치볼 · 비눗방울: 누가 하든 둘레에 보여요.
+// 배드민턴 · 캐치볼은 10m 안에 같은 걸 하는 사람이 있으면 둘이 주고받고, 혼자면 제자리에서 위로 띄워요 (요청 없이 같은 단추를 누르면 짝이 돼요)
+const flying = new Map();   // 아바타 → 콕/공 메시
+const bubbles = [];
+let bubbleTex = null;
+function playersHere() { const list = S.me ? [[net.selfId || 'me', S.me]] : []; for (const [id, r] of S.remotes) if (r.st.s === S.scene && r.av.group.visible) list.push([id, r.av]); return list; }
+function stepPlay(dt) {
+  const list = playersHere(), seen = new Set();
+  for (const [id, av] of list) {
+    if (av.action === 'bubbles' && Math.random() < dt * 2.2) spawnBubble(av);
+    if (av.action !== 'badminton' && av.action !== 'catchball') continue;
+    const mates = list.filter(([oid, o]) => oid !== id && o.action === av.action && o.group.position.distanceTo(av.group.position) < 10).sort((a, b) => a[1].group.position.distanceTo(av.group.position) - b[1].group.position.distanceTo(av.group.position));
+    const mate = mates[0];
+    let m = flying.get(av);
+    if (!m) {
+      m = new THREE.Mesh(av.action === 'badminton' ? new THREE.ConeGeometry(0.05, 0.12, 10) : new THREE.SphereGeometry(0.06, 12, 8), new THREE.MeshStandardMaterial({ color: av.action === 'badminton' ? '#f4f4f4' : '#e8e2d6' }));
+      scene.add(m); flying.set(av, m);
+    }
+    seen.add(av);
+    const hand = av.group.position.clone().add(new THREE.Vector3(0, 1.6, 0));
+    if (mate && String(id) < String(mate[0])) {
+      // 짝: 두 사람 사이를 포물선으로 오가요 (한 번 가는 데 1.2초)
+      const other = mate[1].group.position.clone().add(new THREE.Vector3(0, 1.6, 0));
+      const t = (performance.now() / 1200) % 2, u = t < 1 ? t : 2 - t;
+      m.position.lerpVectors(hand, other, u); m.position.y += Math.sin(Math.PI * u) * 2.2;
+      // 서로 바라보기
+      av.group.rotation.y = Math.atan2(other.x - hand.x, other.z - hand.z);
+      mate[1].group.rotation.y = Math.atan2(hand.x - other.x, hand.z - other.z);
+      m.visible = true;
+    } else if (mate) { m.visible = false; }
+    else {
+      // 혼자: 제자리에서 톡톡 위로 띄우기
+      const t = (performance.now() / 1200) % 1;
+      m.position.copy(hand).add(new THREE.Vector3(Math.sin(av.group.rotation.y) * 0.35, Math.sin(Math.PI * t) * 1.8, Math.cos(av.group.rotation.y) * 0.35));
+      m.visible = true;
+    }
+  }
+  for (const [av, m] of flying) if (!seen.has(av)) { m.removeFromParent(); m.geometry.dispose(); flying.delete(av); }
+  for (let i = bubbles.length - 1; i >= 0; i--) {
+    const b = bubbles[i]; b.t += dt;
+    b.s.position.addScaledVector(b.v, dt); b.v.y += dt * 0.05; b.s.position.x += Math.sin(b.t * 2 + b.ph) * dt * 0.3;
+    b.s.material.opacity = Math.min(0.7, b.t * 2) * Math.max(0, 1 - b.t / 6);
+    if (b.t > 6) { b.s.removeFromParent(); b.s.material.dispose(); bubbles.splice(i, 1); }
+  }
+}
+function spawnBubble(av) {
+  if (bubbles.length > 80) return;
+  if (!bubbleTex) { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const rg = g.createRadialGradient(26, 24, 2, 32, 32, 30); rg.addColorStop(0, 'rgba(255,255,255,.9)'); rg.addColorStop(0.25, 'rgba(255,255,255,.08)'); rg.addColorStop(0.8, 'rgba(180,220,255,.25)'); rg.addColorStop(0.95, 'rgba(255,190,240,.7)'); rg.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = rg; g.fillRect(0, 0, 64, 64); bubbleTex = new THREE.CanvasTexture(c); }
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: bubbleTex, transparent: true, depthWrite: false, opacity: 0 }));
+  const k = 0.12 + Math.random() * 0.22; s.scale.setScalar(k);
+  const f = new THREE.Vector3(Math.sin(av.group.rotation.y), 0, Math.cos(av.group.rotation.y));
+  s.position.copy(av.group.position).addScaledVector(f, 0.5).add(new THREE.Vector3(0, 1.5, 0));
+  scene.add(s);
+  bubbles.push({ s, t: 0, ph: Math.random() * 6, v: f.multiplyScalar(0.4 + Math.random() * 0.4).add(new THREE.Vector3((Math.random() - 0.5) * 0.3, 0.25 + Math.random() * 0.3, (Math.random() - 0.5) * 0.3)) });
+}
+
 function openDex() { renderDex($('#dex-body')); $('#dex-modal').hidden = false; }
 
 // ───────── 기록 (이 기기에만) ─────────
@@ -1436,14 +1516,15 @@ function loop() {
     S.active?.update?.(elapsed);
   } else if (S.mode === 'world') {
     moveMe(dt);
+    stepWander(dt);
     stepCameraTurn(dt);
     controls.update();
     S.me.update(dt, ACTIONS);
     stepFireworks(dt);
     stepCatch(dt);
     // 낮잠 이불: 낮잠을 자는 동안만 스르르 펴지고, 일어나면 개어요
-    const bed = S.active?.bedding;
-    if (bed) { const want = S.me.action === 'nap' ? 1 : 0.01; bed.scale.z += (want - bed.scale.z) * Math.min(1, dt * 5); bed.visible = bed.scale.z > 0.05; }
+    for (const [act, bed] of Object.entries(S.active?.beddings || {})) { const want = S.me.action === act ? 1 : 0.01; bed.scale.z += (want - bed.scale.z) * Math.min(1, dt * 5); bed.visible = bed.scale.z > 0.05; }
+    stepPlay(dt);
     updateCounters();
     if (S.stones) stepStones();
     if (!S.me.action && document.querySelector('.act[aria-pressed="true"]')) syncActionButtons();
@@ -1933,3 +2014,10 @@ document.addEventListener('focusout', () => setTimeout(() => { if (visualViewpor
   const loc = params.get('loc') || store.get('lastLoc', 'forest');
   enterLocation(LOCATIONS.some((l) => l.id === loc) ? loc : 'forest');
 })();
+
+// 팝업 바깥(어두운 배경)이나 메뉴 바깥을 누르면 닫혀요
+addEventListener('click', (e) => { if (e.target.classList?.contains('modal')) e.target.hidden = true; });
+addEventListener('pointerdown', (e) => {
+  const menu = document.getElementById('menu');
+  if (menu && !menu.hidden && !e.target.closest('#menu, #btn-menu')) { menu.hidden = true; document.body.classList.remove('menu-open'); }
+});

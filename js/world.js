@@ -1934,7 +1934,7 @@ export function buildBoriamView(loc) {
 
 // ───────── 캠핑장 물가: 마당 앞으로 내려가면 나오는 물가 (산 · 계곡 / 바다 · 해수욕장 / 별밤 · 강가) ─────────
 // 걷는 곳은 y=0 평평한 물가(bounds 안), 앞(+z)으로 물, 둘레는 산 · 숲 · 모래언덕
-const SHORE_Z = { forest: 7, sea: 11, river: 7 };   // 걸을 수 있는 물가 끝
+const SHORE_Z = { forest: 7, sea: 11, river: 9.5 };   // 강가는 물 바로 앞까지 걸어가요   // 걸을 수 있는 물가 끝
 function shoreHeight(id) {
   if (id === 'forest') {
     // 편백 숲 계곡: 앞으로 시냇물이 가로질러 흐르고, 건너편은 가파른 숲 비탈, 뒤와 옆도 산이 감싸요
@@ -1962,8 +1962,8 @@ function shoreHeight(id) {
   // 강가 (밤): 풀밭 물가에서 넓고 잔잔한 강, 건너편은 낮은 산 그림자
   return (x, z) => {
     let h = noise(x * 2, z * 2) * 0.1;
-    if (z > 7) h = -(z - 7) * 0.12;
-    if (z > 12) h = -0.8;
+    if (z > 9.6) h = -(z - 9.6) * 0.25;
+    if (z > 13) h = -0.85;
     if (z > 120) h = -0.8 + (z - 120) * 0.35 + noise(x, z) * 6 + 20 * smooth(140, 260, z);
     if (z < -10) h += (-z - 10) * 0.3 + noise(x, z) * 3;
     return h;
@@ -2064,7 +2064,7 @@ export function buildWaterside(loc, off = 0) {
   if (id === 'river') {
     // 잔잔한 강: 별과 은하수가 비쳐요
     const rv = mirrorWater(new THREE.PlaneGeometry(900, 140), '#1c2850', 0.45); rv.position.set(0, -0.45, 80); g.add(rv);
-    g.add(reeds(r, 900, (rr) => { const x = -60 + rr() * 120, z = 5.5 + rr() * 6; return Math.abs(x) < 7 && z < 9 ? [x + 20, h(x + 20, z), z] : [x, h(x, z), z]; }));
+    g.add(reeds(r, 900, (rr) => { const x = -60 + rr() * 120, z = 5.5 + rr() * 6; return Math.abs(x) < 12 ? [x + (x < 0 ? -12 : 12), h(x + (x < 0 ? -12 : 12), z), z] : [x, h(x, z), z]; }));   // 가운데는 비워 물 앞까지 트이게
     g.add(scatterTrees(h, 900, 61, { minD: 20, maxD: 330, autumn: false, skip: (x, z) => h(x, z) < 1 || (z > 0 && z < 125) }));
     // 반딧불이: 갈대 위로 천천히 떠다니며 깜빡여요
     const n = 70, pos = new Float32Array(n * 3), base = [];
@@ -2281,7 +2281,7 @@ export function buildCampRoom(loc, kind) {
   if (bedding) { bedding.scale.z = 0.01; bedding.visible = false; }
   return {
     group: g, floor, seats: [seat], exitDoor: null,
-    spawn: seat.pos.clone(), spawnRot: 0, camRise, camLookY, napSpot, bedding,
+    spawn: seat.pos.clone(), spawnRot: 0, camRise, camLookY, napSpot, beddings: bedding ? { nap: bedding } : {},
     spots: napSpot ? { nap: { x: napSpot.pos.x, z: napSpot.pos.z, rot: napSpot.rot } } : {},
     exitZ, camDist, minDist: 1.0, maxDist,
     bounds, blockers, fog: null, background: new THREE.Color('#1c1410'),
