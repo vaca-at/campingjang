@@ -101,7 +101,7 @@ export const SCENES = {
   in: { name: '캠프 마당', cap: '모닥불 둘레에 모두 모여요' },
   room: { name: '내 자리', cap: '텐트 · 캠핑카 · 카바나 안' },
   out: { name: '물가', cap: '낚시 · 곤충 잡기' },
-  meal: { name: '취사장', cap: '요리 · 설거지 · 화장실' },
+  meal: { name: '취사장', cap: '요리 · 설거지' },
 };
 
 // 절기 행사: 한국 날짜로 기간 안이면 그 행사 이름 (확인용: 주소 끝 ?season=halloween 또는 ?season=none)
