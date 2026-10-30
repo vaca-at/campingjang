@@ -98,6 +98,7 @@
       <button id="btn-reload" class="glass icon-btn" aria-label="새로고침" title="새로고침"><span class="lbl"><svg class="hud-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg></span><small class="cap">새로고침</small></button>
       <button id="btn-copy" class="glass icon-btn" aria-label="링크 복사" title="링크 복사"><span class="lbl"><svg class="hud-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1"/><path d="M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></svg></span><small class="cap">링크 복사</small></button>
       <button id="btn-sound" class="glass icon-btn" aria-label="소리" aria-pressed="false"><span class="lbl"><svg class="hud-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" class="spk"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12" class="on"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5" class="off"/></svg></span><small class="cap">소리</small></button>
+      <button id="btn-calm" class="glass icon-btn" aria-label="크게 보기" title="크게 보기"><span class="lbl"><svg class="hud-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></span><small class="cap">크게 보기</small></button>
       <button id="btn-menu" class="glass icon-btn" aria-label="메뉴"><span class="lbl">☰</span><small class="cap">메뉴</small></button>
     </div>
   </div>
@@ -105,16 +106,13 @@
   <div id="toasts"></div>
   <div id="menu" class="glass menu" hidden>
     <span id="hud-timer" title="머문 시간"></span>
-    <button data-menu="calm"><span class="lbl">크게 보기</span><small class="cap">화면보호기처럼 버튼 없이 천천히 둘러보기</small></button>
-    <button data-menu="record"><span class="lbl">내 기록</span><small class="cap">이 기기에 남은 하루 기록</small></button>
-    <button data-menu="quiet"><span class="lbl">조용한 서버로</span><small class="cap">혼자 쉬고 싶을 때 사람 적은 서버로 옮겨요</small></button>
-    <button data-menu="main"><span class="lbl">본 서버로</span><small class="cap">모두가 모이는 1번 서버로 돌아가요</small></button>
-    <button data-menu="photo"><span class="lbl">사진 찍기</span><small class="cap">버튼을 숨기고 지금 화면을 사진으로</small></button>
+    <button data-menu="guide"><span class="lbl">사용 안내</span><small class="cap">처음이라면 여기부터 · 단추 · 장소 · 동작 안내</small></button>
+    <button data-menu="settings"><span class="lbl">내 기록 · 설정</span><small class="cap">내 기록 · 이름 · 소리 · 크게 보기</small></button>
+    <button data-menu="album"><span class="lbl">사진 보기</span><small class="cap">카메라 단추로 찍은 사진 모아 보기</small></button>
     <button data-menu="music"><span class="lbl">캠핑 음악</span><small class="cap">모닥불 · 풀벌레 · 통기타</small></button>
     <button data-menu="dex"><span class="lbl">도감</span><small class="cap">잡은 물고기 · 곤충, 만든 요리</small></button>
-    <button data-menu="credit"><span class="lbl">자료 출처</span><small class="cap">음악 · 소리 출처</small></button>
     <button data-menu="report"><span class="lbl">신고하기</span><small class="cap">불쾌한 캠퍼 이름을 알려 주세요</small></button>
-    <p class="menu-links"><a href="guide.html" target="_blank" rel="noopener"><b>사용 안내</b></a> · <a href="terms.html" target="_blank" rel="noopener">이용약관</a> · <a href="privacy.html" target="_blank" rel="noopener"><b>개인정보처리방침</b></a></p>
+    <p class="menu-links"><button type="button" class="menu-link" data-menu="credit">자료 출처</button> · <a href="terms.html" target="_blank" rel="noopener">이용약관</a> · <a href="privacy.html" target="_blank" rel="noopener"><b>개인정보처리방침</b></a></p>
   </div>
   <div id="welcome" class="glass" hidden>
     <b>캠핑장에 오신 걸 환영해요</b>
@@ -236,12 +234,37 @@
 </div>
 
 <!-- 내 기록 -->
-<div id="record-modal" class="modal" hidden>
+<!-- 내 기록 · 설정: 내 기록 · 사진 · 이름 · 환경 -->
+<div id="settings-modal" class="modal" hidden>
   <div class="sheet wide-sheet">
-    <header class="panel-head"><h2>내 기록</h2><button class="icon-btn" data-close="record-modal" aria-label="닫기"><span class="lbl">✕</span><small class="cap">닫기</small></button></header>
-    <p class="sub">로그인 없이 이 기기에만 남아요. 다른 기기나 다른 브라우저에서는 따로 쌓여요.</p>
-    <div id="record-today" class="stats"></div>
-    <div class="table-wrap"><table id="record-table"></table></div>
+    <header class="panel-head"><h2>내 기록 · 설정</h2><button class="icon-btn" data-close="settings-modal" aria-label="닫기"><span class="lbl">✕</span><small class="cap">닫기</small></button></header>
+    <div class="set-tabs" role="tablist">
+      <button type="button" role="tab" data-tab="rec" aria-selected="true">내 기록</button>
+      <button type="button" role="tab" data-tab="photo" aria-selected="false">사진</button>
+      <button type="button" role="tab" data-tab="account" aria-selected="false">이름 · 모습</button>
+      <button type="button" role="tab" data-tab="env" aria-selected="false">환경</button>
+    </div>
+    <section data-panel="rec">
+      <p class="sub">로그인 없이 이 기기에만 남아요. 다른 기기나 다른 브라우저에서는 따로 쌓여요.</p>
+      <div id="record-today" class="stats"></div>
+      <div class="table-wrap"><table id="record-table"></table></div>
+    </section>
+    <section data-panel="photo" hidden>
+      <p class="sub">왼쪽 카메라 단추로 찍은 사진이 이 기기 브라우저 안에만 모여요 (최근 60장). 서버에는 올라가지 않아요.</p>
+      <div id="album" class="album"></div>
+    </section>
+    <section data-panel="account" hidden>
+      <label class="field" for="set-name">캠퍼 이름
+        <span class="row"><input id="set-name" maxlength="10" autocomplete="off"><button id="set-name-save" class="ghost small" type="button"><span class="lbl">저장</span></button></span>
+      </label>
+      <div class="row wrap"><button id="set-char" class="ghost small-btn" type="button"><span class="lbl">캐릭터 꾸미기</span></button></div>
+      <p class="sub">로그인 없이 쓰는 곳이라 이름 · 꾸민 모습 · 기록은 이 기기에만 있어요. 브라우저 데이터를 지우면 처음으로 돌아가요.</p>
+    </section>
+    <section data-panel="env" hidden>
+      <div class="set-row"><span>소리</span><button id="set-sound" class="ghost small-btn" type="button"></button></div>
+      <div class="set-row"><span>캠핑 음악</span><button id="set-music" class="ghost small-btn" type="button"><span class="lbl">곡 고르기</span></button></div>
+      <div class="set-row"><span>크게 보기</span><button id="set-calm" class="ghost small-btn" type="button"><span class="lbl">시작</span></button></div>
+    </section>
   </div>
 </div>
 

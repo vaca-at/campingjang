@@ -16,6 +16,7 @@ import { Net, preloadNet } from './net.js';
 import { hangScroll, stopScrolls } from './scrolls.js';
 import { setSound, sound, moktak, bowl, coin, bigBell, sfx, setAmbience, TRACKS, setMusic, music } from './audio.js';
 import { buildCampsite, buildShore, SHELTERS, shelterOf } from './camp.js';
+import { addPhoto, listPhotos, removePhoto } from './album.js';
 import { launchFirework, stepFireworks, addToDex, renderDex, loadDex } from './fun.js';
 import { daylight, applyDaylight } from './daytime.js';
 
@@ -721,19 +722,50 @@ function stepStones() {
 
 // ───────── 도감 · 잡기 ─────────
 // 낚시는 챔질할 때(7초마다) 반쯤, 곤충은 휘두를 때(약 2초마다) 셋 중 하나, 요리는 8초 · 고기는 10초마다 한 접시
-const CATCH = { fish: [7, 6.0, 0.5, 'fish'], bugs: [1.96, 1.2, 0.33, 'bug'], cook: [8, 7.5, 1, 'food'], grill: [10, 9.5, 1, 'food'] };
-let catchKey = null;
-function stepCatch() {
+// 잡기 · 요리: 한 번에 period 초. 앞부분은 찾는 중, 마지막 3초는 '앗, 저기!', 끝나면 잡았거나 놓쳤거나.
+// 곤충 잡기는 잠자리채를 들고 둘레를 천천히 돌아다녀요
+const CATCH = {
+  fish: { period: 14, chance: 0.5, kind: 'fish', label: '낚시', find: '입질을 기다리고 있어요…', near: '찌가 움직여요!', miss: '아깝다, 놓쳤어요' },
+  bugs: { period: 12, chance: 0.45, kind: 'bug', label: '곤충 잡기', find: '곤충을 찾고 있어요…', near: '앗, 저기 있다!', miss: '놓쳤어요… 다시 찾아볼게요' },
+  cook: { period: 16, chance: 1, kind: 'food', label: '요리', find: '보글보글 끓이는 중…', near: '거의 다 됐어요' },
+  grill: { period: 14, chance: 1, kind: 'food', label: '고기 굽기', find: '지글지글 굽는 중…', near: '뒤집을 때가 됐어요' },
+};
+let catchKey = null, catchMsg = '', catchHold = 0, wander = null;
+function catchStatus(c, text) {
+  if (text === catchMsg) return;
+  catchMsg = text;
+  $('#bae-counter').innerHTML = `<small>${c.label}</small><b class="catch-msg">${text}</b>`;
+  $('#bae-counter').hidden = false;
+}
+function stepCatch(dt = 0.016) {
   const a = S.me?.action, c = CATCH[a];
-  if (!c) { catchKey = null; return; }
-  const [period, at, chance, kind] = c, n = Math.floor((S.me.actionT - at) / period);
-  const key = `${a}:${n}`;
-  if (n < 0 || key === catchKey) return;
-  catchKey = key;
-  if (Math.random() > chance) return;
-  const [name, first] = addToDex(kind, { night: dayNow() < 0.3, haveFish: !!Object.keys(loadDex().fish || {}).length });
-  sfx('catch');
-  toast(`${kind === 'fish' ? '🐟' : kind === 'bug' ? '🦋' : '🍳'} ${name}${kind === 'food' ? '을(를) 만들었어요' : '을(를) 잡았어요'}${first ? ' · 도감에 새로 올렸어요!' : ''}`);
+  if (!c) {
+    if (catchMsg) { $('#bae-counter').hidden = true; catchMsg = ''; }
+    catchKey = null; wander = null; return;
+  }
+  const t = S.me.actionT, n = Math.floor(t / c.period), u = t - n * c.period;
+  // 곤충 잡기: 처음 선 자리 둘레를 8자로 천천히 돌아다녀요
+  if (a === 'bugs' && S.seat == null) {
+    const g = S.me.group;
+    wander ||= g.position.clone();
+    const p = wander.clone().add(new THREE.Vector3(Math.sin(t * 0.3) * 2.4, 0, Math.sin(t * 0.6) * 1.4));
+    collide(p);
+    const d = p.clone().sub(g.position);
+    if (d.lengthSq() > 1e-6) g.rotation.y = Math.atan2(d.x, d.z);
+    g.position.copy(p);
+  }
+  if (n >= 1 && catchKey !== `${a}:${n}`) {
+    catchKey = `${a}:${n}`;
+    if (Math.random() < c.chance) {
+      const [name, first] = addToDex(c.kind, { night: dayNow() < 0.3, haveFish: !!Object.keys(loadDex().fish || {}).length });
+      sfx('catch');
+      toast(`${c.kind === 'fish' ? '🐟' : c.kind === 'bug' ? '🦋' : '🍳'} ${name}${c.kind === 'food' ? '을(를) 만들었어요' : '을(를) 잡았어요'}${first ? ' · 도감에 새로 올렸어요!' : ''}`);
+      catchStatus(c, c.kind === 'food' ? '완성!' : '잡았다!');
+    } else catchStatus(c, c.miss);
+    catchHold = 2.5;
+  }
+  if (catchHold > 0) { catchHold -= dt; return; }
+  catchStatus(c, u > c.period - 3 ? c.near : c.find);
 }
 function openDex() { renderDex($('#dex-body')); $('#dex-modal').hidden = false; }
 
@@ -757,7 +789,6 @@ function openRecords() {
   $('#record-table').innerHTML = `<thead><tr><th>날짜</th><th>산보</th><th>법당</th><th>공양</th><th>독서</th><th>절</th><th>소원</th></tr></thead><tbody>` +
     (days.length ? days.map((d) => { const r = store.get(`rec:${d}`, {}); return `<tr><td>${d.slice(5)}</td><td>${mm(r.out)}분</td><td>${mm(r.in)}분</td><td>${mm(r.meal)}분</td><td>${mm(r.room)}분</td><td>${r.bows || 0}</td><td>${r.wishes || 0}</td></tr>`; }).join('')
       : '<tr><td colspan="7">아직 기록이 없어요. 머무는 동안 10초마다 쌓여요.</td></tr>') + '</tbody>';
-  $('#record-modal').hidden = false;
 }
 
 // 화면이 가려지면 그리기(와 함께 내 상태 보내기)가 멈추니, 그동안은 5초마다 '여기 있어요'만 보낸다
@@ -1361,7 +1392,7 @@ function loop() {
     controls.update();
     S.me.update(dt, ACTIONS);
     stepFireworks(dt);
-    stepCatch();
+    stepCatch(dt);
     updateCounters();
     if (S.stones) stepStones();
     if (!S.me.action && document.querySelector('.act[aria-pressed="true"]')) syncActionButtons();
@@ -1482,13 +1513,12 @@ document.addEventListener('click', (e) => {
   if (t.dataset.music != null) return pickMusic(t.dataset.music);
   if (t.dataset.v != null && t.closest('#wish-amounts')) { wishAmount = +t.dataset.v; return renderWishForm(); }
   if (t.dataset.menu) {
-    $('#menu').hidden = true;
+    $('#menu').hidden = true; document.body.classList.remove('menu-open');
     const m = t.dataset.menu;
-    if (m === 'calm') startCalm();
+    if (m === 'guide') window.open('guide.html', '_blank', 'noopener');
+    if (m === 'settings') openSettings('rec');
+    if (m === 'album') openSettings('photo');
     if (m === 'char') openCreator();
-    if (m === 'record') openRecords();
-    if (m === 'quiet') { const n = quietServer(); switchServer(n); }
-    if (m === 'main') { if (S.server !== 1) switchServer(1); else toast('지금 본 서버(1번)에 있어요'); }
     if (m === 'dex') openDex();
     if (m === 'place') showPlaces();
     if (m === 'credit') { $('#credit-audio').innerHTML = TRACKS.filter((t) => t.by).map((t) => `<li>${t.name} · ${t.by}</li>`).join(''); $('#credit-modal').hidden = false; }
@@ -1511,7 +1541,51 @@ $('#nick-save').onclick = () => {
 };
 $('#nick').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#nick-save').click(); } });
 $('#creator-done').onclick = finishCreator;
-$('#btn-menu').onclick = () => { $('#menu').hidden = !$('#menu').hidden; };
+$('#btn-menu').onclick = () => { $('#menu').hidden = !$('#menu').hidden; document.body.classList.toggle('menu-open', !$('#menu').hidden); };
+$('#btn-calm').onclick = () => startCalm();
+
+// ───────── 내 기록 · 설정: 내 기록 · 사진 · 이름 · 환경 ─────────
+function openSettings(tab) {
+  openRecords();
+  $('#set-name').value = S.profile.name;
+  syncSettings();
+  showTab(tab);
+  $('#settings-modal').hidden = false;
+}
+function syncSettings() { $('#set-sound').textContent = sound.on ? '켜짐 · 끄기' : '꺼짐 · 켜기'; }
+function showTab(tab) {
+  document.querySelectorAll('#settings-modal [data-tab]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
+  document.querySelectorAll('#settings-modal [data-panel]').forEach((p) => { p.hidden = p.dataset.panel !== tab; });
+  if (tab === 'photo') renderAlbum();
+}
+const albumUrls = [];
+async function renderAlbum() {
+  albumUrls.splice(0).forEach((u) => URL.revokeObjectURL(u));
+  const photos = await listPhotos();
+  $('#album').innerHTML = photos.length ? photos.map((p) => { const u = URL.createObjectURL(p.blob); albumUrls.push(u);
+    return `<figure><img src="${u}" alt="${escapeHtml(p.place)}에서 찍은 사진"><figcaption>${new Date(p.at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' })}<span><button type="button" data-psave="${p.id}">저장</button><button type="button" data-pdel="${p.id}">지우기</button></span></figcaption></figure>`; }).join('')
+    : '<p class="muted">아직 찍은 사진이 없어요. 왼쪽 카메라 단추로 찍어 보세요.</p>';
+}
+$('#settings-modal').addEventListener('click', async (e) => {
+  const tab = e.target.closest('[data-tab]'); if (tab) return showTab(tab.dataset.tab);
+  const del = e.target.closest('[data-pdel]'); if (del) { await removePhoto(del.dataset.pdel); return renderAlbum(); }
+  const sv = e.target.closest('[data-psave]');
+  if (sv) {
+    const p = (await listPhotos()).find((x) => x.id === sv.dataset.psave); if (!p) return;
+    const file = new File([p.blob], `campingjang-${p.id}.png`, { type: p.blob.type || 'image/png' });
+    if (navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file] }); return; } catch (err) { if (err.name === 'AbortError') return; } }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(p.blob); a.download = file.name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  }
+});
+$('#set-name-save').onclick = () => {
+  const name = $('#set-name').value.trim().slice(0, 10) || randomName();
+  $('#set-name').value = name; S.profile.name = name; store.set('profile', S.profile);
+  S.me?.setName(name); pushState(true); toast(`이름을 '${name}'(으)로 저장했어요`);
+};
+$('#set-char').onclick = () => { $('#settings-modal').hidden = true; openCreator(); };
+$('#set-sound').onclick = () => { setSound(!sound.on); store.set('muted', !sound.on); syncSoundBtn(); syncSettings(); };
+$('#set-music').onclick = () => { renderMusic(); $('#music-modal').hidden = false; };
+$('#set-calm').onclick = () => { $('#settings-modal').hidden = true; startCalm(); };
 $('#btn-stand').onclick = () => { stopWalk(); standUp(); };
 $('#btn-sanbo').onclick = () => doAction('walk');   // 마당 자동 산보: 다시 누르면 멈춤
 $('#btn-go').onclick = () => { stopWalk(); goScene(S.scene === 'in' ? 'room' : 'in'); };
@@ -1632,7 +1706,8 @@ async function takePhoto() {
   const flash = $('#photo-flash');
   flash.classList.remove('on'); void flash.offsetWidth; flash.classList.add('on');
   const blob = await new Promise((r) => c.toBlob(r, 'image/png'));
-  const name = `templestay-${today()}-${Date.now().toString(36)}.png`;
+  addPhoto(blob, `${S.loc?.name || ''} · ${SCENES[S.scene]?.name || ''}`);   // 내 기록 · 설정 > 사진에 모아 둬요
+  const name = `campingjang-${today()}-${Date.now().toString(36)}.png`;
   const file = new File([blob], name, { type: 'image/png' });
   if (matchMedia('(pointer: coarse)').matches && navigator.canShare?.({ files: [file] })) {
     try { await navigator.share({ files: [file] }); return; } catch (e) { if (e.name === 'AbortError') return; }
