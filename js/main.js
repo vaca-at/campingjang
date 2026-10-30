@@ -791,13 +791,31 @@ function addRecord(k, v) {
 function openRecords() {
   const t = store.get(`rec:${today()}`, {});
   const m = (s) => fmtLong(s || 0);
-  const tiles = [['산보·마당', m(t.out)], ['법당', m(t.in)], ['발우공양', m(t.meal)], ['독서', m(t.room)], ['절', `${t.bows || 0}번`], ['소원', `${t.wishes || 0}개`]];
+  const dex = loadDex(), got = Object.values(dex).reduce((n, k) => n + Object.keys(k || {}).length, 0);
+  const tiles = [['캠프 마당', m(t.in)], ['물가', m(t.out)], ['취사장', m(t.meal)], ['내 자리', m(t.room)], ['불꽃놀이', `${t.fireworks || 0}번`], ['도감', `${got}가지`]];
   $('#record-today').innerHTML = `<p class="muted small">오늘 ${today()}</p>` + tiles.map(([k, v]) => `<div class="stat"><small>${k}</small><b>${v}</b></div>`).join('');
   const days = store.get('recdays', []).slice(-14).reverse();
   const mm = (s) => Math.round((s || 0) / 60);
-  $('#record-table').innerHTML = `<thead><tr><th>날짜</th><th>산보</th><th>법당</th><th>공양</th><th>독서</th><th>절</th><th>소원</th></tr></thead><tbody>` +
-    (days.length ? days.map((d) => { const r = store.get(`rec:${d}`, {}); return `<tr><td>${d.slice(5)}</td><td>${mm(r.out)}분</td><td>${mm(r.in)}분</td><td>${mm(r.meal)}분</td><td>${mm(r.room)}분</td><td>${r.bows || 0}</td><td>${r.wishes || 0}</td></tr>`; }).join('')
-      : '<tr><td colspan="7">아직 기록이 없어요. 머무는 동안 10초마다 쌓여요.</td></tr>') + '</tbody>';
+  $('#record-table').innerHTML = `<thead><tr><th>날짜</th><th>마당</th><th>물가</th><th>취사장</th><th>내 자리</th><th>불꽃</th></tr></thead><tbody>` +
+    (days.length ? days.map((d) => { const r = store.get(`rec:${d}`, {}); return `<tr><td>${d.slice(5)}</td><td>${mm(r.in)}분</td><td>${mm(r.out)}분</td><td>${mm(r.meal)}분</td><td>${mm(r.room)}분</td><td>${r.fireworks || 0}</td></tr>`; }).join('')
+      : '<tr><td colspan="6">아직 기록이 없어요. 머무는 동안 10초마다 쌓여요.</td></tr>') + '</tbody>';
+  renderGrass($('#record-grass'), (d) => { const r = store.get(`rec:${d}`, {}); return ((r.out || 0) + (r.in || 0) + (r.meal || 0) + (r.room || 0)) / 60; }, '머문 시간');
+}
+
+// 잔디: 최근 20주, 하루 머문 시간만큼 진하게 (깃허브 잔디처럼). 칸에 손을 올리면 날짜와 분
+function renderGrass(el, minutesOf, unit) {
+  const W = 20, end = new Date(), start = new Date(end); start.setDate(end.getDate() - end.getDay() - (W - 1) * 7);
+  let cells = '', total = 0, days = 0, best = 0;
+  for (let i = 0; i < W * 7; i++) {
+    const d = new Date(start); d.setDate(start.getDate() + i);
+    if (d > end) { cells += '<i class="g-empty"></i>'; continue; }
+    const mins = minutesOf(today(d)), lv = mins <= 0 ? 0 : mins < 10 ? 1 : mins < 30 ? 2 : mins < 60 ? 3 : 4;
+    total += mins; if (mins > 0) days++; best = Math.max(best, mins);
+    cells += `<i class="g${lv}" title="${today(d)} · ${Math.round(mins)}분"></i>`;
+  }
+  el.innerHTML = `<div class="grass-head"><b>최근 20주</b><small>${days}일 · 모두 ${Math.round(total / 6) / 10}시간 · 가장 오래 ${Math.round(best)}분</small></div>
+    <div class="grass-grid">${cells}</div>
+    <div class="grass-legend"><small>${unit}</small><i class="g0"></i><i class="g1"></i><i class="g2"></i><i class="g3"></i><i class="g4"></i><small>오래</small></div>`;
 }
 
 // 화면이 가려지면 그리기(와 함께 내 상태 보내기)가 멈추니, 그동안은 5초마다 '여기 있어요'만 보낸다
@@ -1535,7 +1553,7 @@ document.addEventListener('click', (e) => {
     $('#menu').hidden = true; document.body.classList.remove('menu-open');
     const m = t.dataset.menu;
     if (m === 'guide') window.open('guide.html', '_blank', 'noopener');
-    if (m === 'settings') openSettings('rec');
+    if (m === 'settings') openSettings('account');
     if (m === 'album') openSettings('photo');
     if (m === 'char') openCreator();
     if (m === 'dex') openDex();

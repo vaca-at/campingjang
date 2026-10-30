@@ -107,7 +107,7 @@
   <div id="menu" class="glass menu" hidden>
     <span id="hud-timer" title="머문 시간"></span>
     <button data-menu="guide"><span class="lbl">사용 안내</span><small class="cap">처음이라면 여기부터 · 단추 · 장소 · 동작 안내</small></button>
-    <button data-menu="settings"><span class="lbl">내 기록 · 설정</span><small class="cap">내 기록 · 이름 · 소리 · 크게 보기</small></button>
+    <button data-menu="settings"><span class="lbl">개인 설정</span><small class="cap">이름 · 모습 · 환경 · 사진 · 내 기록</small></button>
     <button data-menu="album"><span class="lbl">사진 보기</span><small class="cap">카메라 단추로 찍은 사진 모아 보기</small></button>
     <button data-menu="music"><span class="lbl">캠핑 음악</span><small class="cap">모닥불 · 풀벌레 · 통기타</small></button>
     <button data-menu="dex"><span class="lbl">도감</span><small class="cap">잡은 물고기 · 곤충, 만든 요리</small></button>
@@ -237,23 +237,24 @@
 <!-- 내 기록 · 설정: 내 기록 · 사진 · 이름 · 환경 -->
 <div id="settings-modal" class="modal" hidden>
   <div class="sheet wide-sheet">
-    <header class="panel-head"><h2>내 기록 · 설정</h2><button class="icon-btn" data-close="settings-modal" aria-label="닫기"><span class="lbl">✕</span><small class="cap">닫기</small></button></header>
+    <header class="panel-head"><h2>개인 설정</h2><button class="icon-btn" data-close="settings-modal" aria-label="닫기"><span class="lbl">✕</span><small class="cap">닫기</small></button></header>
     <div class="set-tabs" role="tablist">
-      <button type="button" role="tab" data-tab="rec" aria-selected="true">내 기록</button>
-      <button type="button" role="tab" data-tab="photo" aria-selected="false">사진</button>
-      <button type="button" role="tab" data-tab="account" aria-selected="false">이름 · 모습</button>
+      <button type="button" role="tab" data-tab="account" aria-selected="true">이름 · 모습</button>
       <button type="button" role="tab" data-tab="env" aria-selected="false">환경</button>
+      <button type="button" role="tab" data-tab="photo" aria-selected="false">사진</button>
+      <button type="button" role="tab" data-tab="rec" aria-selected="false">내 기록</button>
     </div>
-    <section data-panel="rec">
+    <section data-panel="rec" hidden>
       <p class="sub">로그인 없이 이 기기에만 남아요. 다른 기기나 다른 브라우저에서는 따로 쌓여요.</p>
       <div id="record-today" class="stats"></div>
+      <div id="record-grass" class="grass"></div>
       <div class="table-wrap"><table id="record-table"></table></div>
     </section>
     <section data-panel="photo" hidden>
       <p class="sub">왼쪽 카메라 단추로 찍은 사진이 이 기기 브라우저 안에만 모여요 (최근 60장). 서버에는 올라가지 않아요.</p>
       <div id="album" class="album"></div>
     </section>
-    <section data-panel="account" hidden>
+    <section data-panel="account">
       <label class="field" for="set-name">캠퍼 이름
         <span class="row"><input id="set-name" maxlength="10" autocomplete="off"><button id="set-name-save" class="ghost small" type="button"><span class="lbl">저장</span></button></span>
       </label>
