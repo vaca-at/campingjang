@@ -66,34 +66,40 @@ export const hairName = (t, gender) => (gender === 'm' ? t.hairM : t.hairF);
 export const OUTFITS = [
   // 'own' 은 예전 값: 머리 스타일(type)에 딸린 차림. 지금은 아래 '…' 옷들로 따로 골라요
   { id: 'own', name: '캐릭터 기본 옷', cap: '블록 캐릭터 고유 차림', top: '#2f8a8c', bottom: '#2c3450', sash: '#3d8fc4', style: 'own', hidden: true },
-  { id: 'wear_beige', name: '베이지 재킷', cap: '검은 상의와 바지', style: 'own', preset: 'beige' },
-  { id: 'wear_moral', name: '남색 카디건', cap: '흰 깃이 보이는 단정한 차림', style: 'own', preset: 'moral' },
-  { id: 'wear_tycoon', name: '검은 정장', cap: '빨간 넥타이', style: 'own', preset: 'tycoon' },
-  { id: 'wear_appteacher', name: '초록 셔츠와 안경', cap: '동그란 안경', style: 'own', preset: 'appteacher' },
-  { id: 'wear_trainee', name: '파란 모자와 명찰', cap: '흰 셔츠에 목걸이 명찰', style: 'own', preset: 'trainee' },
+  { id: 'wear_beige', name: '베이지 재킷', cap: '검은 상의와 바지', style: 'own', preset: 'beige', hidden: true },
+  { id: 'wear_moral', name: '남색 카디건', cap: '흰 깃이 보이는 단정한 차림', style: 'own', preset: 'moral', hidden: true },
+  { id: 'wear_tycoon', name: '검은 정장', cap: '빨간 넥타이', style: 'own', preset: 'tycoon', hidden: true },
+  { id: 'wear_appteacher', name: '초록 셔츠와 안경', cap: '동그란 안경', style: 'own', preset: 'appteacher', hidden: true },
+  { id: 'wear_trainee', name: '파란 모자와 명찰', cap: '흰 셔츠에 목걸이 명찰', style: 'own', preset: 'trainee', hidden: true },
   { id: 'wear_planner', name: '베레모와 분홍 니트', cap: '빨간 베레모', style: 'own', preset: 'planner' },
   { id: 'wear_knitdev', name: '초록 줄무늬 니트', cap: '포근한 스웨터', style: 'own', preset: 'knitdev' },
   { id: 'wear_hoodie', name: '초록 후드티', cap: '모자 달린 후드와 끈', style: 'own', preset: 'hoodie' },
+  // 캠핑장 기본: 편하게 입는 차림
+  { id: 'flannel', name: '체크 남방', cap: '빨간 체크 셔츠에 청바지', top: '#b8433a', bottom: '#4a6fa5', deco: 'check', decoC: '#3a1f1c', style: 'plain' },
+  { id: 'sweat', name: '맨투맨', cap: '회색 맨투맨에 조거 바지', top: '#a9adb0', bottom: '#3a3f45', style: 'plain' },
+  { id: 'pajama', name: '잠옷', cap: '하늘색 줄무늬 잠옷', top: '#cfe3f2', bottom: '#cfe3f2', deco: 'stripes', decoC: '#7fa8cf', style: 'plain' },
+  { id: 'cardigan', name: '도톰한 가디건', cap: '겨자색 가디건에 면바지', top: '#d9a441', bottom: '#cdbb9a', deco: 'buttons', decoC: '#6e4c30', style: 'plain' },
   { id: 'windbreaker', name: '바람막이', cap: '주황 바람막이에 검은 바지', top: '#e2603d', bottom: '#2f3540', deco: 'track', decoC: '#2f3540', style: 'plain' },
   { id: 'fleece', name: '플리스', cap: '복슬복슬 크림 플리스', top: '#efe6d2', bottom: '#5a6b52', deco: 'puffer', decoC: '#e2d8c0', style: 'plain' },
   { id: 'seungbok', name: '승복', cap: '회색 승복에 노란 띠', top: '#c9ccc8', bottom: '#b9bcb8', sash: '#e9d27a', style: 'robe', hidden: true },
   { id: 'gasa', name: '가사장삼', cap: '갈색 장삼에 붉은 가사', top: '#8a6a4f', bottom: '#7a5c44', sash: '#c4532f', style: 'kasaya', hidden: true }, // 고르는 목록에서는 뺌 (예전에 고른 사람은 그대로 보임)
-  { id: 'hanbok', name: '생활한복', cap: '쪽빛 저고리와 고름', top: '#4f5f8f', bottom: '#d9d2c0', sash: '#e8a3a3', style: 'hanbok' },
+  { id: 'hanbok', name: '생활한복', cap: '쪽빛 저고리와 고름', top: '#4f5f8f', bottom: '#d9d2c0', sash: '#e8a3a3', style: 'hanbok', hidden: true },
   { id: 'lotus', name: '연꽃 법회복', cap: '하얀 옷에 연분홍 띠', top: '#f6f2ea', bottom: '#efe7d8', sash: '#e58fa6', style: 'robe', hidden: true },
   { id: 'hiking', name: '등산복', cap: '산길 오르는 차림과 배낭', top: '#e2603d', bottom: '#3c4552', sash: '#2b7a6a', style: 'hiking' },
-  { id: 'durumagi', name: '단풍 두루마기', cap: '가을빛 긴 두루마기', top: '#b5502e', bottom: '#d8c7a6', sash: '#f0c05a', style: 'coat' },
-  { id: 'saehanbok', name: '연두 개량한복', cap: '연두 저고리에 흰 바지', top: '#a8c97a', bottom: '#f2ede2', sash: '#d96a6a', style: 'hanbok' },
+  { id: 'durumagi', name: '단풍 두루마기', cap: '가을빛 긴 두루마기', top: '#b5502e', bottom: '#d8c7a6', sash: '#f0c05a', style: 'coat', hidden: true },
+  { id: 'saehanbok', name: '연두 개량한복', cap: '연두 저고리에 흰 바지', top: '#a8c97a', bottom: '#f2ede2', sash: '#d96a6a', style: 'hanbok', hidden: true },
   { id: 'suhaeng', name: '갈색 수행복', cap: '편안한 갈색 수행복', top: '#8a6a4a', bottom: '#7a5c3e', sash: '#c9a24a', style: 'robe', hidden: true },
   { id: 'overalls', name: '청 멜빵바지', cap: '흰 티에 청 멜빵', top: '#f4f4f2', bottom: '#4a6fa5', deco: 'overalls', decoC: '#4a6fa5', style: 'plain' },
   { id: 'puffer', name: '패딩 점퍼', cap: '밤 캠핑 패딩', top: '#2f3e66', bottom: '#2a2a2c', deco: 'puffer', decoC: '#26345a', style: 'plain' },
   { id: 'track', name: '트레이닝복', cap: '흰 줄 세 개 운동복', top: '#2f6f62', bottom: '#2f6f62', deco: 'track', decoC: '#f4f4f2', style: 'plain' },
-  { id: 'wizard', name: '보라 마법사 옷', cap: '별무늬 긴 옷과 망토 · 남녀 공용', top: '#5b3f94', bottom: '#4a3279', sash: '#f2c94c', style: 'wizard' },
+  { id: 'wizard', name: '보라 마법사 옷', cap: '별무늬 긴 옷과 망토 · 남녀 공용', top: '#5b3f94', bottom: '#4a3279', sash: '#f2c94c', style: 'wizard', hidden: true },
   // 법당 안에서는 누구나 이 옷으로 갈아입는다 (고르는 목록에는 안 나옴)
   { id: 'monkgray', name: '스님 회색 옷', cap: '법당 안 차림', top: '#9b9e9b', bottom: '#8e918e', sash: '#7f827f', style: 'robe', hidden: true },
 ];
 
-// 장소(scene)별로 입는 옷: 캠핑장에서는 어디서나 고른 옷 그대로
-export function dressFor(look) { return look; }
+// 장소(scene)별로 입는 옷: 캠핑장에서는 어디서나 고른 옷 그대로.
+// 예전 기본값(베이지 재킷 · 캐릭터 기본 옷)은 캠핑장에 안 어울려서 체크 남방으로 보여요
+export function dressFor(look) { return look && (look.outfit === 'wear_beige' || look.outfit === 'own' || !look.outfit) ? { ...look, outfit: 'flannel' } : look; }
 
 // 하루 활동. scene: 그 활동을 하러 가는 곳
 // 장소 줄 순서: 법당 → 내 방 → 마당 → 공양간
@@ -213,6 +219,6 @@ export const defaultLook = () => ({
   gender: 'f',
   pet: 'claude',
   skin: SKIN_TONES[0],
-  outfit: 'wear_beige',
+  outfit: 'flannel',
   acc: 'none',
 });

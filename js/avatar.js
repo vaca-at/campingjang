@@ -40,7 +40,7 @@ function nameTag(text, mine) {
   c.width = 512; c.height = 112;
   const g = c.getContext('2d');
   // 단추와 같은 반투명 먹색 + 고운바탕. 내 이름표는 조금 더 진하고 흰 테두리
-  g.font = '700 46px "Gaegu", "Gowun Dodum", sans-serif';
+  g.font = '400 48px "Ownglyph_UNZ-Rg", "Gowun Dodum", sans-serif';
   const w = Math.min(500, g.measureText(text).width + 52);
   const x = (512 - w) / 2;
   g.fillStyle = mine ? 'rgba(18, 16, 15, 0.78)' : 'rgba(18, 16, 15, 0.55)';

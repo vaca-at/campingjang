@@ -222,6 +222,9 @@ export function buildBlock(av, body, look, outfit, skinColor) {
   if (!own && outfit.style === 'hiking') box(hips, '#f2f2f2', 0.02, 0.5, 0.02, 0, 0.28, 0.15);
   // 옷 무늬: deco 로 상의 겉에 덧그려요
   const dc = outfit.decoC;
+  if (!own && outfit.deco === 'check') { for (let i = 0; i < 4; i++) box(hips, dc, 0.535, 0.03, 0.315, 0, 0.1 + i * 0.13, 0); for (const x of [-0.17, 0, 0.17]) box(hips, dc, 0.03, 0.56, 0.315, x, 0.28, 0); }
+  if (!own && outfit.deco === 'stripes') for (let i = 0; i < 6; i++) box(hips, dc, 0.535, 0.025, 0.315, 0, 0.05 + i * 0.09, 0);
+  if (!own && outfit.deco === 'buttons') { box(hips, dc, 0.02, 0.56, 0.02, 0, 0.28, 0.156); for (let i = 0; i < 4; i++) box(hips, '#e8e2d6', 0.04, 0.04, 0.02, 0.03, 0.12 + i * 0.12, 0.16); }
   if (!own && outfit.deco === 'puffer') for (let i = 0; i < 4; i++) box(hips, dc, 0.53, 0.025, 0.31, 0, 0.1 + i * 0.13, 0);
   if (!own && outfit.deco === 'track') { for (const s of [1, -1]) box(hips, dc, 0.02, 0.56, 0.02, s * 0.1, 0.28, 0.145); box(hips, dc, 0.02, 0.4, 0.02, 0, 0.32, 0.146); }
   if (!own && outfit.deco === 'overalls') { box(hips, dc, 0.42, 0.24, 0.29, 0, 0.12, 0); for (const s of [1, -1]) box(hips, dc, 0.06, 0.34, 0.29, s * 0.14, 0.38, 0); box(hips, '#f2c94c', 0.04, 0.04, 0.02, 0.14, 0.5, 0.15); box(hips, '#f2c94c', 0.04, 0.04, 0.02, -0.14, 0.5, 0.15); }

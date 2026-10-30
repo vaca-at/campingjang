@@ -145,7 +145,11 @@ function campfire() {
     f.position.y = y + s; g.add(f); flames.push(f);
   }
   const light = new THREE.PointLight('#ff9a4a', 6, 14, 1.4); light.position.y = 1.2; g.add(light);
+  // 낮에는 꺼 두고(장작만), 어두워지면 불을 붙여요
+  g.userData.lit = true;
+  g.userData.setLit = (on) => { g.userData.lit = on; flames.forEach((f) => (f.visible = on)); light.visible = on; };
   g.userData.tick = (t) => {
+    if (!g.userData.lit) return;
     flames.forEach((f, i) => { const k = 1 + Math.sin(t * (7 + i * 2.3) + i) * 0.12; f.scale.set(1 + Math.sin(t * 5 + i) * 0.06, k, 1); f.rotation.y = t * (0.6 + i * 0.4); });
     light.intensity = 5.5 + Math.sin(t * 9) * 0.8 + Math.sin(t * 13.7) * 0.5;
   };
@@ -158,6 +162,69 @@ function campChair(color) {
   const back = box(g, color, 0.6, 0.6, 0.06, 0, 0.75, -0.27); back.rotation.x = -0.2;
   for (const x of [-0.28, 0.28]) for (const z of [-0.24, 0.24]) box(g, '#2a2a2a', 0.03, 0.44, 0.03, x, 0.22, z);
   return g;
+}
+
+// ───────── 마당 곳곳 앉을 자리 ─────────
+// 자리 하나마다 모양(g)에 seatId 를 달아 seats 에 넣어요. face: 앉은 사람이 바라보는 쪽(y 회전), y: 엉덩이 높이
+function addSeat(root, seats, g, x, z, face, y = 0.4) {
+  g.position.set(x, 0, z); g.rotation.y = face; root.add(g);
+  g.traverse((o) => { if (o.isMesh) o.userData.seats = 'chair'; });
+  g.userData.seatId = seats.length;
+  seats.push({ id: seats.length, pos: new THREE.Vector3(x, 0, z), rot: face, y, mesh: g });
+}
+const faceTo = (x, z, tx, tz) => Math.atan2(tx - x, tz - z);
+// (cx, cz) 에서 rot 만큼 돌린 자리의 (lx, lz) → 마당 좌표
+const local = (cx, cz, rot, lx, lz) => [cx + lx * Math.cos(rot) + lz * Math.sin(rot), cz - lx * Math.sin(rot) + lz * Math.cos(rot)];
+const WOOD = '#9a7048', WOOD_D = '#6e4c30';
+function benchPart() { const g = new THREE.Group(); box(g, WOOD, 0.95, 0.07, 0.34, 0, 0.44, 0); for (const x of [-0.38, 0.38]) box(g, WOOD_D, 0.07, 0.42, 0.3, x, 0.21, 0); return g; }
+function stump() { const g = new THREE.Group(); const m = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.34, 0.4, 12), mat('#7a5232')); m.position.y = 0.2; m.castShadow = true; g.add(m); const top = new THREE.Mesh(new THREE.CircleGeometry(0.3, 16), mat('#d8b48a')); top.rotation.x = -Math.PI / 2; top.position.y = 0.401; g.add(top); return g; }
+function logSeat() { const g = new THREE.Group(); const m = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.26, 0.98, 10), mat('#6e4a2c')); m.rotation.z = Math.PI / 2; m.position.y = 0.26; m.castShadow = true; g.add(m); const top = box(g, '#c99d6e', 0.98, 0.03, 0.3, 0, 0.45, 0); top.castShadow = false; return g; }
+function relaxChair(color) {   // 낮게 기대앉는 릴렉스 체어
+  const g = new THREE.Group();
+  const seat = box(g, color, 0.62, 0.05, 0.55, 0, 0.3, 0.02); seat.rotation.x = 0.12;
+  const back = box(g, color, 0.62, 0.75, 0.05, 0, 0.62, -0.3); back.rotation.x = -0.4;
+  for (const x of [-0.31, 0.31]) { const leg = box(g, '#2a2a2a', 0.03, 0.03, 0.9, x, 0.2, 0); leg.rotation.x = 0.35; const leg2 = box(g, '#2a2a2a', 0.03, 0.03, 0.9, x, 0.2, 0); leg2.rotation.x = -0.35; box(g, '#3a3a3a', 0.05, 0.04, 0.5, x, 0.48, 0.05); }
+  return g;
+}
+function picnicTable(g, cx, cz, rot) {
+  const t = new THREE.Group(); t.position.set(cx, 0, cz); t.rotation.y = rot; g.add(t);
+  box(t, WOOD, 1.9, 0.07, 0.85, 0, 0.76, 0);
+  for (const x of [-0.75, 0.75]) for (const s of [-1, 1]) { const l = box(t, WOOD_D, 0.07, 0.85, 0.07, x, 0.38, s * 0.22); l.rotation.x = s * 0.45; }
+  for (const x of [-0.75, 0.75]) box(t, WOOD_D, 0.07, 0.06, 1.5, x, 0.3, 0);
+  // 위에 랜턴 · 컵
+  const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.2, 10), new THREE.MeshStandardMaterial({ color: '#ffe0a0', emissive: '#ffb74a', emissiveIntensity: 1.2 })); lamp.position.set(0.3, 0.9, 0); t.add(lamp);
+  box(t, '#e8e2d6', 0.08, 0.1, 0.08, -0.4, 0.84, 0.15);
+}
+function roundTable(g, cx, cz, color = '#3a3f45') {
+  const t = new THREE.Group(); t.position.set(cx, 0, cz); g.add(t);
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.05, 20), mat('#d9cdb4')); top.position.y = 0.68; top.castShadow = true; t.add(top);
+  for (let i = 0; i < 3; i++) { const l = box(t, color, 0.03, 0.72, 0.03, Math.sin(i * 2.1) * 0.35, 0.34, Math.cos(i * 2.1) * 0.35); l.rotation.set(Math.cos(i * 2.1) * 0.25, 0, -Math.sin(i * 2.1) * 0.25); }
+  const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.09, 0.14, 12), mat('#c9572a')); pot.position.y = 0.78; t.add(pot);
+}
+function lowTable(g, cx, cz, rot) { const t = new THREE.Group(); t.position.set(cx, 0, cz); t.rotation.y = rot; g.add(t); box(t, WOOD, 0.9, 0.05, 0.55, 0, 0.36, 0); for (const x of [-0.38, 0.38]) for (const z of [-0.22, 0.22]) box(t, WOOD_D, 0.04, 0.34, 0.04, x, 0.17, z); box(t, '#2f7a96', 0.12, 0.12, 0.12, 0.2, 0.44, 0); }
+
+// 마당 가구 놓기: 큰 탁자(피크닉 테이블) · 동그란 탁자 + 의자 셋 · 낮은 탁자 + 릴렉스 체어 둘 · 통나무 벤치 · 혼자 앉는 자리 몇 곳
+function yardSeats(g, seats) {
+  const blockers = [];
+  const block = (x, z, w, d) => blockers.push({ minX: x - w, maxX: x + w, minZ: z - d, maxZ: z + d });
+  // 피크닉 테이블: 양쪽 벤치에 둘씩
+  { const [cx, cz, r] = [-11, 9, 0.5]; picnicTable(g, cx, cz, r); block(cx, cz, 1.1, 1.1);
+    for (const lx of [-0.48, 0.48]) for (const s of [-1, 1]) { const [x, z] = local(cx, cz, r, lx, s * 0.72); addSeat(g, seats, benchPart(), x, z, r + (s > 0 ? Math.PI : 0), 0.45); } }
+  // 동그란 탁자 + 캠핑 의자 셋
+  { const [cx, cz] = [11, 9]; roundTable(g, cx, cz); block(cx, cz, 0.6, 0.6);
+    ['#e8b54a', '#2f7a96', '#a33b2a'].forEach((c, i) => { const a = i * 2.1 + 0.4, x = cx + Math.sin(a) * 1.0, z = cz + Math.cos(a) * 1.0; addSeat(g, seats, campChair(c), x, z, faceTo(x, z, cx, cz)); }); }
+  // 낮은 탁자 + 릴렉스 체어 둘 (마당 바깥 풍경 쪽을 보며)
+  { const [cx, cz] = [-13, -3]; lowTable(g, cx, cz, 0.3); block(cx, cz, 0.5, 0.4);
+    for (const s of [-1, 1]) { const [x, z] = local(cx, cz, 0.3, s * 0.95, 0.15); addSeat(g, seats, relaxChair(s > 0 ? '#3f6b55' : '#c9822a'), x, z, faceTo(x, z, -40, 8), 0.32); } }
+  // 통나무 벤치: 셋이 나란히 모닥불을 바라보며
+  { const [cx, cz] = [-6.5, 12]; const r = faceTo(cx, cz, 0, 3);
+    for (const lx of [-1, 0, 1]) { const [x, z] = local(cx, cz, r, lx, 0); addSeat(g, seats, logSeat(), x, z, r, 0.45); } }
+  // 혼자 앉는 자리: 그루터기 둘, 풍경 보는 릴렉스 체어 둘, 캠핑 의자 하나
+  for (const [x, z] of [[7, 13], [8.5, 12]]) addSeat(g, seats, stump(), x, z, faceTo(x, z, 0, 3), 0.4);
+  addSeat(g, seats, relaxChair('#6b5a9a'), 15.5, -2, faceTo(15.5, -2, 40, -2), 0.32);
+  addSeat(g, seats, relaxChair('#2f7a96'), -16, 14, faceTo(-16, 14, -30, 30), 0.32);
+  addSeat(g, seats, campChair('#3f6b55'), 10, -8, faceTo(10, -8, 30, -20));
+  return blockers;
 }
 
 const KIND = { forest: 'tent', sea: 'van', river: 'cabana' };
@@ -196,6 +263,7 @@ export function buildCampsite(loc) {
     ch.userData.seatId = i;
     seats.push({ id: i, pos: new THREE.Vector3(x, 0, z), rot: a + Math.PI, y: 0.4, mesh: ch });
   }
+  const yardBlockers = yardSeats(w.group, seats);
   const baseUpdate = w.update;
   return {
     ...w,
@@ -206,7 +274,7 @@ export function buildCampsite(loc) {
     setShelter,
     spawn: new THREE.Vector3(0, 0, 8.5), spawnRot: Math.PI,
     camDist: 7, camRise: 0.32, camLookY: 1.6,
-    blockers: [{ minX: -3.4, maxX: 3.4, minZ: -14, maxZ: -8 }, { minX: -1.1, maxX: 1.1, minZ: 1.9, maxZ: 4.1 }],
+    blockers: [{ minX: -3.4, maxX: 3.4, minZ: -14, maxZ: -8 }, { minX: -1.1, maxX: 1.1, minZ: 1.9, maxZ: 4.1 }, ...yardBlockers],
     walkPath: Array.from({ length: 24 }, (_, k) => { const a = (-2 * Math.PI * k) / 24; return new THREE.Vector3(5 * Math.sin(a), 0, 3 + 5 * Math.cos(a)); }),
     update: (t) => { baseUpdate?.(t); fire.group.userData.tick(t); },
   };

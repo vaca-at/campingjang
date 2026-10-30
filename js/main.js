@@ -14,7 +14,7 @@ import { Avatar } from './avatar.js';
 import { buildInterior, buildExterior, buildMealHall, buildRoom, buildBoriamView, buildLantern, paintView, PAGODAS, setPanorama } from './world.js';
 import { Net, preloadNet } from './net.js';
 import { hangScroll, stopScrolls } from './scrolls.js';
-import { setSound, sound, moktak, bowl, coin, bigBell, TRACKS, setMusic, music } from './audio.js';
+import { setSound, sound, moktak, bowl, coin, bigBell, sfx, setAmbience, TRACKS, setMusic, music } from './audio.js';
 import { buildCampsite, buildShore, SHELTERS, shelterOf } from './camp.js';
 import { launchFirework, stepFireworks, addToDex, renderDex, loadDex } from './fun.js';
 import { daylight, applyDaylight } from './daytime.js';
@@ -267,11 +267,21 @@ function setWorld(world) {
   scene.fog = world.fog;
   scene.background = world.background;
   scene.environmentIntensity = ENV * applyDaylight(world, dayNow());
+  world.campfire?.userData.setLit(dayNow() < 0.5);
+  setAmbience(ambienceFor());
+}
+// 장소 바탕 소리: 물가는 물소리, 마당은 낮엔 새소리 · 밤엔 풀벌레 (바닷가는 늘 파도)
+function ambienceFor() {
+  const id = S.loc?.id, night = dayNow() < 0.5, A = (n) => `assets/audio/${n}.m4a`;
+  if (S.scene === 'out') return A(id === 'sea' ? 'waves' : id === 'river' ? 'stream' : 'brook');
+  if (id === 'sea') return A('gentle-waves');
+  if (id === 'river') return A('crickets');
+  return A(night ? 'summer-bugs' : 'forest-birds');
 }
 // 낮과 밤: 30초마다 한국의 해 뜨고 지는 시각에 맞춰 다시 칠한다
 // 카바나 · 별밤은 늘 밤
 const dayNow = () => (S.loc?.night ? 0 : daylight());
-setInterval(() => { if (S.active) scene.environmentIntensity = ENV * applyDaylight(S.active, dayNow()); }, 30000);
+setInterval(() => { if (S.active) { scene.environmentIntensity = ENV * applyDaylight(S.active, dayNow()); S.active.campfire?.userData.setLit(dayNow() < 0.5); setAmbience(ambienceFor()); } }, 30000);
 
 // 정각마다 범종 한 번 (소리를 켠 분만 들려요)
 let bellHour = null;
@@ -722,7 +732,7 @@ function stepCatch() {
   catchKey = key;
   if (Math.random() > chance) return;
   const [name, first] = addToDex(kind, { night: dayNow() < 0.3, haveFish: !!Object.keys(loadDex().fish || {}).length });
-  coin(0.6);
+  sfx('catch');
   toast(`${kind === 'fish' ? '🐟' : kind === 'bug' ? '🦋' : '🍳'} ${name}${kind === 'food' ? '을(를) 만들었어요' : '을(를) 잡았어요'}${first ? ' · 도감에 새로 올렸어요!' : ''}`);
 }
 function openDex() { renderDex($('#dex-body')); $('#dex-modal').hidden = false; }
@@ -1421,22 +1431,23 @@ function loop() {
   renderer.render(scene, camera);
 }
 
-// 목탁 소리: 채가 내려칠 때마다
-// 범종 소리: 당목이 앞으로 닿는 순간(6초마다 2.2초쯤)
+// 캠핑 동작 소리: 동작 그림에서 손이 닿는 순간에 맞춰 [주기(초), 처음 순간, 소리]
+// 다른 사람 소리는 멀수록 작게 (16m 밖이면 안 들려요)
+const ACT_SFX = {
+  chop: [2, 1.1, 'chop'], fish: [7, 5.8, 'cast'], bugs: [Math.PI / 3.2, 0.2, 'swish'], splash: [Math.PI / 4, 0.3, 'splash'],
+  grill: [2.5, 1.75, 'sizzle'], cook: [1.4, 0.6, 'bubble'], roast: [0.9, 0.3, 'crackle'], warm: [1.1, 0.5, 'crackle'],
+  guitar: [(2 * Math.PI) / 9, 0.1, 'strum'], skip: [999, 0.9, 'skip'], fireworks: [999, 0.3, 'firework'],
+};
 function soundFor(av, vol) {
-  if (vol <= 0 || !['moktak', 'bell', 'jukbi'].includes(av.action)) { av._hit = null; return; }
-  if (av.action === 'jukbi') {   // 죽비가 손바닥에 닿는 순간 딱
-    const n = Math.floor((av.actionT - 1.05) / 1.5);
-    if (av._hit !== n) { if (n >= 0) moktak(vol * 0.8); av._hit = n; }
-    return;
-  }
-  if (av.action === 'bell') {
-    const n = Math.floor((av.actionT - 2.2) / 6);
-    if (av._hit !== n) { if (n >= 0) bigBell(vol); av._hit = n; }
-    return;
-  }
-  const n = Math.floor(av.actionT * 1.1 + 0.25);
-  if (av._hit !== n) { if (av._hit != null) moktak(vol); av._hit = n; }
+  const c = ACT_SFX[av.action];
+  if (vol <= 0 || !c) { av._hit = null; return; }
+  const [period, at, kind] = c, n = Math.floor((av.actionT - at) / period);
+  if (av._hit === n) return;
+  av._hit = n;
+  if (n < 0) return;
+  // 장작 소리는 불이 켜졌을 때만, 기타는 네 번 쓸 때마다 코드가 바뀌어요
+  if ((kind === 'crackle') && !S.active?.campfire?.userData.lit) return;
+  sfx(kind, kind === 'firework' ? Math.max(vol, 0.5) : vol, Math.floor(n / 4));
 }
 
 // ───────── 버튼 ─────────
@@ -1612,7 +1623,7 @@ async function takePhoto() {
   const g = c.getContext('2d');
   g.drawImage(canvas, 0, 0);
   const fs = Math.round(Math.max(c.width, c.height) / 48);
-  g.font = `700 ${fs}px "Gaegu", sans-serif`;
+  g.font = `400 ${fs}px "Ownglyph_UNZ-Rg", sans-serif`;
   g.textAlign = 'right';
   g.fillStyle = 'rgba(255, 255, 255, .9)';
   g.shadowColor = 'rgba(0, 0, 0, .45)'; g.shadowBlur = fs / 2;
@@ -1736,7 +1747,7 @@ async function demo(which) {
   const world = S.active;
   const seats = world.seats ? [...world.seats].sort(() => rnd() - 0.5) : [];
   for (let i = 0; i < n; i++) {
-    const look = { type: types[Math.floor(rnd() * types.length)], gender: rnd() < 0.5 ? 'f' : 'm', skin: SKIN_TONES[Math.floor(rnd() * 3)], outfit: rnd() < 0.5 ? 'own' : OUTFITS[1 + Math.floor(rnd() * 6)].id, acc: rnd() < 0.7 ? 'none' : ACCESSORIES[Math.floor(rnd() * ACCESSORIES.length)].id, pet: rnd() < 0.35 ? PETS[Math.floor(rnd() * 10)].id : 'none' };
+    const look = { type: types[Math.floor(rnd() * types.length)], gender: rnd() < 0.5 ? 'f' : 'm', skin: SKIN_TONES[Math.floor(rnd() * 3)], outfit: (() => { const o = OUTFITS.filter((x) => !x.hidden); return o[Math.floor(rnd() * o.length)].id; })(), acc: rnd() < 0.7 ? 'none' : ACCESSORIES[Math.floor(rnd() * ACCESSORIES.length)].id, pet: rnd() < 0.35 ? PETS[Math.floor(rnd() * 10)].id : 'none' };
     const seat = (which === 'in' && rnd() < 0.75) || which === 'meal' ? seats[i] : null;
     const walk = which === 'out' && world.walkPath ? world.walkPath[i % world.walkPath.length] : null;
     const pos = seat ? [seat.pos.x, seat.pos.z] : walk ? [walk.x + (rnd() - 0.5) * 2, walk.z + (rnd() - 0.5) * 2] : [(rnd() - 0.5) * 18, (rnd() - 0.3) * 18];
@@ -1787,7 +1798,7 @@ document.addEventListener('focusout', () => setTimeout(() => { if (visualViewpor
 
 (async () => {
   if (!params.has('demo') && !params.has('gallery')) preloadNet();
-  try { await Promise.race([document.fonts.load('700 40px "Gaegu"'), sleep(2500)]); } catch {}
+  try { await Promise.race([document.fonts.load('400 40px "Ownglyph_UNZ-Rg"'), sleep(2500)]); } catch {}
   loop();
   if (params.get('gallery')) return gallery(params.get('gallery'));
   if (params.get('demo')) return demo(params.get('demo'));

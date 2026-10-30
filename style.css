@@ -1,4 +1,5 @@
 /* 한지 같은 반투명 패널 + 단청에서 가져온 먹색·청록·주홍 */
+@font-face { font-family: 'Ownglyph_UNZ-Rg'; src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2406-1@1.0/Ownglyph_UNZ-Rg.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: swap; }
 :root {
   --ink: #2b2420;
   --ink-soft: #6a5f57;
@@ -9,10 +10,11 @@
   --jade-soft: #e3efe9;
   --vermilion: #b8463f;
   --gold: #c9953a;
-  --display: "Gaegu", "Gowun Dodum", "Apple SD Gothic Neo", sans-serif;
+  --display: "Ownglyph_UNZ-Rg", "Gowun Dodum", "Apple SD Gothic Neo", sans-serif;
+  /* 메인 글씨체: 온글잎 언즈체 (눈누 · 상업 사용 가능, 파일은 jsdelivr 에서 바로 받아요) */
   /* 화면 단추 색: 디자인마다 다른 반투명 (텐트 숲 초록 · 캠핑카 바다 청록 · 카바나 밤하늘 남색). main.js 가 body[data-site] 로 바꿔요 */
   --btn: 30, 58, 42;
-  --body: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --body: "Ownglyph_UNZ-Rg", "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
   --radius: 18px;
   color-scheme: light;
 }

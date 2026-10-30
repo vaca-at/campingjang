@@ -1,5 +1,5 @@
-// 소리는 녹음 파일 없이 Web Audio로 합성한다: 목탁, 싱잉볼(풍경), 동전, 바람, 법당 음악 (실제 녹음 다섯 곡은 assets/audio)
-let ctx = null, master = null, ambient = null;
+// 소리: 캠핑 효과음(도끼 · 낚시 · 물 · 고기 굽기 · 기타 · 불꽃놀이)은 Web Audio로 합성, 음악과 장소 바탕 자연음은 assets/audio 녹음
+let ctx = null, master = null;
 export const sound = { on: false };
 
 function ensure() {
@@ -50,20 +50,86 @@ export function coin() {
   [0, 0.09, 0.2].forEach((at, i) => tone(1800 + i * 300, 0.35, { gain: 0.12, at, type: 'triangle' }));
 }
 
+// ───────── 장소 바탕 소리: 음악과 따로, 아주 작게 깔리는 자연음 ─────────
+// 산속 낮은 새소리 · 밤은 풀벌레, 바닷가는 잔잔한 파도, 별밤은 귀뚜라미, 물가는 시냇물
+let ambSrc = 'assets/audio/forest-birds.m4a', stopAmb = null;
 function startAmbient() {
-  if (ambient || !ctx) return;
-  const len = ctx.sampleRate * 2;
-  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  let last = 0;
-  for (let i = 0; i < len; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3; }
-  const src = ctx.createBufferSource(); src.buffer = buf; src.loop = true;
-  const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 500;
-  const g = ctx.createGain(); g.gain.value = 0.07;
-  src.connect(f).connect(g).connect(master); src.start();
-  ambient = { src, g };
+  if (stopAmb || !ctx || !ambSrc) return;
+  const g = ctx.createGain(); g.gain.value = 0.32; g.connect(master);
+  stopAmb = playRecording([ambSrc], g);
 }
-function stopAmbient() { try { ambient?.src.stop(); } catch {} ambient = null; }
+function stopAmbient() { stopAmb?.(); stopAmb = null; }
+export function setAmbience(src) {
+  if (src === ambSrc && (stopAmb || !sound.on)) return;
+  ambSrc = src; stopAmbient();
+  if (sound.on) { ensure(); startAmbient(); }
+}
+
+// ───────── 캠핑 효과음 (합성) ─────────
+let NOISE = null;
+function noise(dur, { type = 'bandpass', freq = 1000, to, q = 1, gain = 0.3, at = 0, attack = 0.004 } = {}) {
+  const t = ctx.currentTime + at;
+  if (!NOISE) { NOISE = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate); const d = NOISE.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+  const src = ctx.createBufferSource(); src.buffer = NOISE;
+  const f = ctx.createBiquadFilter(); f.type = type; f.Q.value = q;
+  f.frequency.setValueAtTime(freq, t); if (to) f.frequency.exponentialRampToValueAtTime(to, t + dur);
+  const g = ctx.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t + attack); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(f).connect(g).connect(master); src.start(t, Math.random() * 1.5); src.stop(t + dur + 0.05);
+}
+function slide(f0, f1, dur, { gain = 0.1, at = 0, type = 'sine' } = {}) {
+  const t = ctx.currentTime + at, o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  o.connect(g).connect(master); o.start(t); o.stop(t + dur + 0.05);
+}
+// 기타 줄 튕김 (Karplus-Strong): 줄마다 소리를 한 번 만들어 기억해 둬요
+const STRINGS = new Map();
+function pluck(freq, at, gain) {
+  let buf = STRINGS.get(freq);
+  if (!buf) {
+    const n = Math.floor(ctx.sampleRate * 1.6), p = Math.round(ctx.sampleRate / freq);
+    buf = ctx.createBuffer(1, n, ctx.sampleRate); const d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = i < p ? Math.random() * 2 - 1 : (d[i - p] + d[i - p + 1]) * 0.497;
+    STRINGS.set(freq, buf);
+  }
+  const src = ctx.createBufferSource(), g = ctx.createGain(); src.buffer = buf; g.gain.value = gain;
+  src.connect(g).connect(master); src.start(ctx.currentTime + at);
+}
+const CHORDS = [[98, 147, 196, 247, 294, 392], [131, 165, 196, 262, 330], [110, 165, 220, 262, 330], [147, 220, 294, 370]];   // G · C · Am · D
+export function sfx(kind, vol = 1, arg = 0) {
+  if (!sound.on || vol <= 0) return;
+  ensure();
+  const v = vol;
+  switch (kind) {
+    case 'chop':   // 도끼가 장작에 '탁'
+      noise(0.09, { freq: 2600, q: 2, gain: 0.45 * v }); slide(160, 70, 0.18, { gain: 0.35 * v, type: 'triangle' }); noise(0.25, { type: 'lowpass', freq: 600, gain: 0.25 * v, at: 0.02 }); break;
+    case 'cast':   // 낚싯대 휙 → 찌가 퐁
+      noise(0.3, { freq: 700, to: 3000, q: 3, gain: 0.18 * v }); slide(700, 260, 0.12, { gain: 0.16 * v, at: 0.45 }); noise(0.2, { freq: 900, to: 300, gain: 0.12 * v, at: 0.45 }); break;
+    case 'swish':  // 잠자리채 휘익
+      noise(0.28, { freq: 500, to: 1800, q: 2.5, gain: 0.14 * v }); break;
+    case 'splash': // 물 첨벙
+      noise(0.45, { freq: 1800, to: 350, q: 0.8, gain: 0.3 * v }); for (let i = 0; i < 3; i++) slide(500 + Math.random() * 500, 250, 0.08, { gain: 0.06 * v, at: 0.05 + i * 0.07 }); break;
+    case 'skip':   // 물수제비 퐁 · 퐁 · 퐁 · 풍덩
+      for (let i = 0; i < 4; i++) slide(1100 - i * 120, 500, 0.07, { gain: (0.14 - i * 0.025) * v, at: i * (0.32 - i * 0.05) });
+      noise(0.35, { freq: 1200, to: 300, gain: 0.15 * v, at: 1.05 }); break;
+    case 'sizzle': // 고기 뒤집으면 치익
+      noise(0.9, { type: 'highpass', freq: 3500, gain: 0.1 * v, attack: 0.03 }); noise(0.5, { freq: 6000, q: 0.5, gain: 0.05 * v }); break;
+    case 'bubble': // 코펠 보글보글
+      for (let i = 0; i < 4; i++) slide(260 + Math.random() * 260, 520 + Math.random() * 300, 0.06, { gain: 0.05 * v, at: Math.random() * 0.8 }); break;
+    case 'crackle':   // 장작 타닥
+      for (let i = 0; i < 3; i++) noise(0.025, { freq: 1800 + Math.random() * 2500, q: 1.5, gain: (0.08 + Math.random() * 0.12) * v, at: Math.random() * 0.7 }); break;
+    case 'strum': {   // 통기타 한 번 쓸어내리기 (arg: 몇 번째 코드)
+      const ch = CHORDS[arg % CHORDS.length];
+      ch.forEach((f, i) => pluck(f, i * 0.014, 0.16 * v)); break;
+    }
+    case 'firework':  // 피유우 → 펑 → 타다닥
+      slide(500, 1700, 1.1, { gain: 0.05 * v });
+      noise(1.6, { type: 'lowpass', freq: 500, gain: 0.8 * v, at: 1.2 }); slide(90, 40, 0.8, { gain: 0.5 * v, at: 1.2 });
+      for (let i = 0; i < 14; i++) noise(0.03, { freq: 3000 + Math.random() * 3000, q: 1, gain: 0.05 * v, at: 1.6 + Math.random() * 1.2 }); break;
+    case 'catch':     // 잡았다! (낚시 · 곤충 · 요리 완성)
+      [0, 0.1, 0.2].forEach((at, i) => tone([660, 880, 1320][i], 0.3, { gain: 0.1, at, type: 'triangle' })); break;
+  }
+}
 
 // ───────── 법당 음악: 실제 녹음 다섯 곡 + 합성 세 곡 ─────────
 // 녹음 파일 없이 여기서 합성해요 (저작권 걱정 없는 소리). 가락은 모두 이 사이트에서 새로 지었어요.
