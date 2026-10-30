@@ -1,48 +1,24 @@
-# 큰법당 템플스테이 · 남은 일
+# 캠핑장 · 남은 일
 
-2026-10-30 퇴근 전 정리. 사이트: https://templestay.site · 관리자 현황판: https://templestay.site/admin.html
-
-## 바로 할 일 (순서대로)
-
-### 1. NPC 넣기
-아무도 없으면 쓸쓸하니, 서버에 실제 사람이 적을 때만 NPC가 다니게.
-- 법당: 방석에 앉아 절·염주·명상 / 마당: 법당을 오른쪽에 두고 산보(3보 1배) / 공양간: 발우공양
-- 실제 사람이 들어오면 그만큼 NPC가 하나씩 빠짐 (예: 사람 + NPC 합쳐 6명 정도 유지)
-- 이름표는 "도우 스님"처럼 NPC임을 알 수 있게. **동시접속자 수(위 오른쪽 ● N명)에는 세지 않기**
-- 각자 화면에서만 그리면 됨 (서버로 보내지 않음). `js/main.js` 의 `demo()` 에 봇을 만드는 코드가 있어 참고
-
-### 2. 휴대폰 단추 자리 (실제 아이폰 사파리에서 보고)
-사파리는 아래 주소창 때문에 화면 높이가 650px 안팎으로 줄어듦. 390×650, 375×560 에서 확인.
-- **조이스틱이 왼쪽 단추(캐릭터·디자인·소원·일정)와 겹침** → 화면이 낮으면 왼쪽 단추를 작게(42px)·간격 좁게 하거나, 조이스틱을 아래로
-- **마당에서 조이스틱과 오른쪽 점프(↑) 단추의 가운데 높이가 다름** → 같은 수평선에 맞추기. 지금 휴대폰에서 점프는 `bottom +166px`, 조이스틱은 `+84px` (`style.css` 의 `#jump-btn`, `#joystick`)
-- 오른쪽 상황 단추(법당으로·산보하기 등, `#context-btns`)가 점프와 안 겹치게 그 위로 올리기
-- 왼쪽 단추에 커서를 올리면 뜨는 말풍선이 바로 아래 단추를 가림 → 단추 오른쪽에 뜨게 (`js/tip.js`)
-
-### 3. 내 옆 친구 2가지 추가 (`js/blocky.js` 의 `PETS`, `buildPet`)
-- **판다**: 푸바오처럼 크게 (다른 친구보다 확실히 큼, 동글동글)
-- **다람쥐**: 햄스터만 한 크기, 큰 꼬리
+2026-10-31 정리. 사이트: https://campingjang.site · 관리자 현황판: https://campingjang.site/admin.html
+큰법당 템플스테이(templestay.site)의 뼈대를 가져와 만들었어요. 템플스테이 쪽 남은 일은 그 저장소의 `TODO.md` 에 있어요.
 
 ## 정해 주셔야 하는 것 (정하면 바로 만들기)
-- **나쁜 말 막기**: 소원 글은 이제 비공개라 남은 건 법명뿐. ① 법명 금칙어 거르기(화면 + 서버) ② 다른 사람 "안 보기" ③ 관리자가 소원 지우기·접속자 막기 ④ (선택) 법명은 고르기만. 신고하기는 이미 됨
-- **소리**: 법당 음악 다섯 곡(메뉴 "법당 음악")은 넣음. 남은 것: 장소별 배경(마당 바람·새·풍경 / 법당 울림 / 공양간 발우 / 내 방 책장), 108배 죽비, 소리 크기 막대
-- **로딩 화면** 1~5 중 하나 (지금은 풍경 네 가지 무작위)
-- **석조 비로자나불**(국가유산청 Sketchfab, CC-BY): 받으려면 Sketchfab 로그인 필요. 받아서 `assets/` 에 넣어 주면 변환
+- **이름**: 후보 `캠핑장 별밤스테이`(추천) · `캠핑장 모닥불스테이` · `캠핑장 불멍스테이` · `캠핑장 반딧불스테이` · `캠핑장 도란스테이`. 정하면 `<title>`, `og:title`, `manifest.webmanifest` 의 `name` · `short_name` 을 함께 바꾸기
+- **OG 이미지 · 아이콘**: 가로 OG 시안 A · B(3D 별밤 마당) · C(그림체), 아이콘 시안 1(팽나무) · 2(모닥불) · 3(첫 글자). 고르면 `og.png`, `icon-512.png`, `icon-192.png`, `icon-180.png`, `icon-32.png` 바꾸기
+- **제목 글씨체**: 온글잎 언즈체(손글씨, 큰 제목용) 또는 다른 둥근 글씨체. 본문은 지금처럼 읽기 쉬운 글씨체 그대로
 
 ## 확인하고 정리할 것
-- **소원 비공개 배포**: 연등에는 색·법명만, 소원 글은 올린 기기에만. 서버가 글 없는 연등을 받아야 하니 **`server` 먼저 `npx wrangler deploy`, 그다음 사이트 push**
-- **법당 음악 귀로 듣고 다듬기**: 다섯 곡 모두 Web Audio 합성(`js/audio.js` 의 `STEPS`). 1·2번 목소리는 합성이라 웅얼거리는 소리에 가까움
-- **관리자 구글 로그인**: admin.html 에서 bellachord@gmail.com 으로 들어가지는지 확인 → 되면 비밀번호 로그인 칸 빼기
-- **관리자 비밀번호 바꾸기**: 대화에 노출됐음. `server` 폴더에서 `npx wrangler secret put ADMIN_PASSWORD` (구글 로그인만 쓰면 입장권 서명용으로만 남음 — 바꾸면 기존 로그인은 풀림)
-- 신고 테스트 한 건이 관리자 현황판에 남아 있음 → "확인했어요(지우기)"
-- 발우공양 10분 시계와 "공양을 마쳤어요" 창: 모양(`index.html`, `style.css`)만 있고 동작 코드 없음
+- **관리자 로그인은 구글로만**: 템플스테이처럼 `admin.html` 의 비밀번호 칸과 `server/worker.js` 의 `/admin/login` · 비밀번호를 바로 보내도 통과되는 줄을 빼고 `cd server && npx wrangler deploy`
+- **`ADMIN_PASSWORD` 바꾸기**: 템플스테이와 같은 값이면 노출된 값이라 `npx wrangler secret put ADMIN_PASSWORD` 로 길고 무작위한 값으로
+- **템플스테이에서 남은 화면 조각**: `index.html` 의 발우공양 10분 시계(`#meal-timer`)와 "공양을 마쳤어요" 창(`#meal-done`)은 캠핑장에서 쓰지 않으면 지우기
 
 ## 일하는 법
-- **사이트 올리기**: `main` 에 push 하면 GitHub Pages(templestay.site)로 1분쯤 뒤 반영. 브라우저가 10분 동안 예전 파일을 기억하니 위 오른쪽 새로고침 단추로 확인
-- **방 중계 서버**(`server/`, Cloudflare Worker): `cd server && npx wrangler deploy` (처음 한 번 `npx wrangler login`, 계정 bellachord)
-- **로컬로 보기**: 저장소 폴더에서 정적 서버 (`npx serve .` 등). 서버(Worker)는 `127.0.0.1:8765`, `localhost:8765` 에서 오는 요청만 받음 — 실시간 접속을 시험하려면 8765 포트로 띄우기
+- **사이트 올리기**: `main` 에 push 하면 GitHub Pages(campingjang.site)로 1분쯤 뒤 반영
+- **방 중계 서버**(`server/`, Cloudflare Worker `campingjang-rooms`): `cd server && npx wrangler deploy` (처음 한 번 `npx wrangler login`, 계정 bellachord). Node.js 가 있는 PC에서
+- **로컬로 보기**: 저장소 폴더에서 정적 서버 (`npx serve .` 또는 `python3 -m http.server 8765`). 서버(Worker)는 `127.0.0.1:8765`, `localhost:8765` 에서 오는 요청만 받아요 — 실시간 접속을 시험하려면 8765 포트로
 - **확인용 주소** (index.html 뒤에 붙이기)
-  - `?demo=in|out|meal|room&loc=forest|river|sea&bots=20` 장소 바로 열기 + 가짜 사람
-  - `?gallery=types|men|outfits|acc|pets` 캐릭터 줄 세우기 · `&speed=5.4` 뛰는 모습
-  - `?buddha=hapjang|duk2116|kwanseum|iron|stone|gold` · `?pagoda=gahangsa|…` · `?loading=1~5`
-  - `?debug` 이면 콘솔에서 `__S` 로 상태 보기
+  - `?demo=in|out|meal|room&loc=forest|sea|river&bots=6` 장소 바로 열기 + 가짜 캠퍼 (in 캠프 마당 · out 물가 · meal 취사장 · room 내 자리 / forest 텐트·산속 · sea 캠핑카·바닷가 · river 카바나·별밤)
+  - `&cam=x,y,z,tx,ty,tz` 카메라 자리와 보는 곳 (보는 곳까지 13 넘게 떨어지면 카메라가 앞으로 끌려와요)
+  - `&shot` 화면을 이미지로 읽을 수 있게 (OG 찍기용) · `?debug` 이면 콘솔에서 `__S` 로 상태 보기
 - 여러 창(세션)이 같은 저장소를 고침: 고치기 전에 `git pull`, 시안은 확정된 것만 올리기

@@ -1,7 +1,7 @@
 {
-  "name": "큰법당 템플스테이",
-  "short_name": "큰법당",
-  "description": "산과 강과 바다가 보이는 3D 법당에서 함께 합장하고, 절하고, 소원을 올려요.",
+  "name": "캠핑장",
+  "short_name": "캠핑장",
+  "description": "3D 캠핑장에서 친구들과 모닥불 앞에 모여요.",
   "lang": "ko",
   "start_url": "/",
   "scope": "/",
