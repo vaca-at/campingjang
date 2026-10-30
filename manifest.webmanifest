@@ -1,0 +1,16 @@
+{
+  "name": "큰법당 템플스테이",
+  "short_name": "큰법당",
+  "description": "산과 강과 바다가 보이는 3D 법당에서 함께 합장하고, 절하고, 소원을 올려요.",
+  "lang": "ko",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#1c1410",
+  "theme_color": "#2b2420",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

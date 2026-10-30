@@ -1,0 +1,19 @@
+# 캠핑장 방 중계 서버 (Cloudflare Worker + Durable Objects)
+# 배포: 이 폴더에서 npx wrangler deploy  (처음 한 번은 npx wrangler login)
+# 관리자 비밀번호 바꾸기: npx wrangler secret put ADMIN_PASSWORD
+name = "campingjang-rooms"
+main = "worker.js"
+compatibility_date = "2026-09-01"
+
+[[durable_objects.bindings]]
+name = "ROOMS"
+class_name = "Room"
+
+[[durable_objects.bindings]]
+name = "STATS"
+class_name = "Stats"
+
+# 무료 요금제에서도 쓸 수 있는 SQLite 저장소 방식
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room", "Stats"]

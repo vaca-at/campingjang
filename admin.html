@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>관리자 · 큰법당 템플스테이</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=Gowun+Dodum&display=swap">
+<style>
+  /* 관리자 현황판: 위 숫자 6칸 → 14일 흐름 · 시간대 → 지금(장소 · 하는 일 · 서버 · 인기) → 누적 순위 · 날짜별 표 → 연등 · 신고 */
+  :root { --bg: #f4efe4; --card: #fffdf8; --fg: #2b2420; --muted: #6d625a; --faint: #a4988a; --line: #e4dac8; --grid: #efe7d8;
+    --jade: #2f6f62; --jade-soft: #e2efe9; --jade-pale: #b9d6cc; --amber: #c97a3c; --amber-pale: #ecc9a8; --red: #b8463f; color-scheme: light; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #1b1815; --card: #25211d; --fg: #efe7da; --muted: #b3a797; --faint: #7d7266; --line: #3a332c; --grid: #2f2a24;
+    --jade: #6fb5a5; --jade-soft: #22362f; --jade-pale: #3c6158; --amber: #e0a06a; --amber-pale: #6b4d33; --red: #e07a70; color-scheme: dark; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.55 "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; word-break: keep-all;
+    padding: 24px max(16px, env(safe-area-inset-right)) 48px max(16px, env(safe-area-inset-left)); }
+  main { max-width: 1200px; margin: 0 auto; display: grid; gap: 16px; }
+  a { color: var(--jade); }
+  h1 { font-family: "Gowun Batang", serif; font-size: 24px; margin: 0; }
+  h2 { font-size: 15px; margin: 0; font-weight: 700; }
+  h3 { font-size: 12.5px; margin: 0 0 8px; font-weight: 400; color: var(--muted); }
+  [hidden] { display: none !important; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .err { color: var(--red); min-height: 1.4em; margin: 0; font-size: 14px; }
+  button { font: inherit; cursor: pointer; border: 0; border-radius: 999px; padding: 9px 16px; background: var(--jade); color: #fff; font-weight: 700; }
+  button.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); font-weight: 400; }
+  button.ghost:hover { background: var(--grid); }
+  input { font: inherit; font-size: 16px; padding: 9px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+  form { display: grid; gap: 10px; max-width: 360px; }
+  .google { display: inline-flex; align-items: center; gap: 10px; background: #fff; color: #1f1f1f; border: 1px solid #dadce0; font-weight: 600; padding: 10px 18px; }
+  .google svg { width: 20px; height: 20px; }
+
+  /* 머리줄 */
+  .top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .top .brand { display: flex; align-items: center; gap: 10px; margin-right: auto; }
+  .top .brand img { width: 34px; height: 34px; }
+  .top .brand small { display: block; color: var(--muted); font-size: 12.5px; }
+  .live-pill { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
+  .live-pill i { width: 8px; height: 8px; border-radius: 50%; background: #3fb57a; box-shadow: 0 0 0 3px rgba(63, 181, 122, .22); }
+  .live-pill.off i { background: var(--faint); box-shadow: none; }
+
+  /* 카드 · 격자 */
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 16px 18px; min-width: 0; }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .card-head .muted { font-size: 12.5px; }
+  .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
+  .s4 { grid-column: span 4; } .s5 { grid-column: span 5; } .s6 { grid-column: span 6; } .s7 { grid-column: span 7; } .s8 { grid-column: span 8; } .s12 { grid-column: span 12; }
+  @media (max-width: 980px) { .s4, .s5, .s7 { grid-column: span 6; } .s8 { grid-column: span 12; } }
+  @media (max-width: 680px) { .grid > * { grid-column: span 12 !important; } }
+
+  /* 숫자 6칸 */
+  .kpis { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+  @media (max-width: 980px) { .kpis { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 520px) { .kpis { grid-template-columns: repeat(2, 1fr); } }
+  .kpi { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 13px 15px; display: grid; gap: 1px; align-content: start; }
+  .kpi small { color: var(--muted); font-size: 12.5px; }
+  .kpi b { font-family: "Gowun Batang", serif; font-size: 30px; line-height: 1.2; font-variant-numeric: tabular-nums; }
+  .kpi b u { text-decoration: none; font-size: 15px; margin-left: 2px; font-family: "Gowun Dodum", sans-serif; color: var(--muted); }
+  .kpi em { font-style: normal; color: var(--muted); font-size: 12px; }
+  .kpi.live { background: var(--jade-soft); border-color: var(--jade-pale); }
+  .kpi.live b { color: var(--jade); }
+  .delta { font-variant-numeric: tabular-nums; }
+
+  /* 단추 묶음 (지표 · 순위 고르기) */
+  .seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--grid); flex-wrap: wrap; }
+  .seg button { background: transparent; color: var(--muted); font-weight: 400; padding: 5px 12px; font-size: 13px; }
+  .seg button[aria-pressed="true"] { background: var(--card); color: var(--fg); font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+
+  /* 세로 막대 (14일 · 시간대) */
+  .vbars { position: relative; display: flex; align-items: flex-end; gap: 4px; height: 190px; padding-top: 18px; border-bottom: 1px solid var(--line);
+    background: linear-gradient(var(--grid) 1px, transparent 1px) 0 18px / 100% 43px; }
+  .vbars .col { position: relative; flex: 1; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; min-width: 0; cursor: default; }
+  .vbars .col i { width: 100%; max-width: 30px; background: var(--faint); opacity: .55; border-radius: 4px 4px 0 0; min-height: 2px; }
+  .vbars .col.hi i { background: var(--jade); opacity: 1; }
+  .vbars.amber .col i { background: var(--amber-pale); } .vbars.amber .col.hi i { background: var(--amber); }
+  .vbars .col:hover i { filter: brightness(.9); }
+  .vbars .col em { position: absolute; font-style: normal; font-size: 11.5px; color: var(--fg); font-variant-numeric: tabular-nums; transform: translateY(-100%); padding-bottom: 2px; }
+  .xlab { display: flex; gap: 4px; margin-top: 5px; }
+  .xlab span { flex: 1; text-align: center; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 0; white-space: nowrap; }
+  .vbars.hours { gap: 2px; height: 160px; padding-top: 26px; background-position: 0 26px; }
+  .headline { font-size: 13.5px; margin: 10px 0 0; }
+  .headline b { color: var(--jade); }
+
+  /* 잔디: 한 칸 = 하루, 세로 7칸 = 한 주 (일~토). 많을수록 진한 초록 */
+  .grass-wrap { overflow-x: auto; padding-bottom: 4px; }
+  .grass { display: grid; grid-template-rows: repeat(7, 15px); grid-auto-flow: column; grid-auto-columns: 15px; gap: 3px; }
+  .grass i { border-radius: 3px; background: var(--grid); outline: 1px solid rgba(0,0,0,.04); outline-offset: -1px; }
+  :is(.grass, .grass-legend) i.l1 { background: #c6e3d3; } :is(.grass, .grass-legend) i.l2 { background: #8cc6aa; } :is(.grass, .grass-legend) i.l3 { background: #4f9e80; } :is(.grass, .grass-legend) i.l4 { background: #2f6f62; }
+  .grass i.today { outline: 2px solid var(--fg); outline-offset: -2px; }
+  .grass i.future { background: transparent; outline: none; }
+  @media (prefers-color-scheme: dark) { :is(.grass, .grass-legend) i.l1 { background: #24443a; } :is(.grass, .grass-legend) i.l2 { background: #2f6a58; } :is(.grass, .grass-legend) i.l3 { background: #4f9e80; } :is(.grass, .grass-legend) i.l4 { background: #7fd1b0; } }
+  .grass-legend { display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+  .grass-legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+  .grass-months { display: grid; grid-auto-flow: column; grid-auto-columns: 15px; gap: 3px; font-size: 11px; color: var(--muted); height: 16px; }
+
+  /* 가로 막대 (장소 · 하는 일 · 인기 · 순위) */
+  .hbar { display: grid; gap: 7px; }
+  .hbar .row { display: grid; grid-template-columns: 22px minmax(70px, 130px) 1fr 54px; gap: 8px; align-items: center; font-size: 13.5px; }
+  .hbar.plain .row { grid-template-columns: minmax(70px, 110px) 1fr 34px; }
+  .hbar .no { color: var(--muted); font-size: 12px; text-align: center; font-variant-numeric: tabular-nums; }
+  .hbar .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hbar .track { height: 10px; border-radius: 5px; background: var(--grid); overflow: hidden; }
+  .hbar .track i { display: block; height: 100%; border-radius: 5px; background: var(--jade); min-width: 3px; }
+  .hbar .row.top1 .track i { background: var(--jade); } .hbar .row:not(.top1) .track i { background: var(--jade-pale); }
+  .hbar b { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; }
+  .hbar b small { color: var(--muted); font-weight: 400; margin-left: 3px; }
+
+  /* 서버 */
+  .servers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .srv { border: 1px solid var(--line); border-radius: 10px; padding: 7px 9px; display: grid; gap: 4px; font-size: 12.5px; }
+  .srv b { font-size: 15px; font-variant-numeric: tabular-nums; }
+  .srv.empty { color: var(--faint); border-style: dashed; }
+  .srv .track { height: 4px; border-radius: 2px; background: var(--grid); }
+  .srv .track i { display: block; height: 100%; border-radius: 2px; background: var(--jade); }
+
+  /* 날짜별 표 */
+  .tablewrap { overflow-x: auto; }
+  table.daily { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .daily th, .daily td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--grid); }
+  .daily th:first-child, .daily td:first-child { text-align: left; }
+  .daily th { color: var(--muted); font-weight: 400; font-size: 12px; position: sticky; top: 0; background: var(--card); }
+  .daily tr.today td { font-weight: 700; color: var(--jade); }
+  .daily td.zero { color: var(--faint); }
+
+  /* 연등 · 신고 */
+  .lanterns { max-height: 420px; overflow-y: auto; display: grid; gap: 6px; }
+  .lantern { display: flex; align-items: center; gap: 10px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 10px; font-size: 14px; }
+  .lantern .dot { width: 13px; height: 17px; border-radius: 7px; border: 1px solid rgba(0,0,0,.15); flex: none; }
+  .lantern small { color: var(--muted); margin-left: auto; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .lantern button { padding: 3px 11px; font-size: 12.5px; }
+  .report { border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 6px; }
+  .report + .report { margin-top: 10px; }
+  .report p { margin: 0; white-space: pre-wrap; }
+  .report img { max-width: 100%; max-height: 240px; border-radius: 8px; border: 1px solid var(--line); cursor: zoom-in; justify-self: start; }
+  .report .meta { color: var(--muted); font-size: 12.5px; }
+  .report button { justify-self: start; padding: 5px 13px; font-size: 13px; }
+  .badge { display: inline-block; min-width: 20px; padding: 0 7px; border-radius: 999px; background: var(--grid); color: var(--muted); font-size: 12px; text-align: center; font-weight: 400; margin-left: 4px; }
+  .badge.alert { background: var(--red); color: #fff; }
+  .empty-note { color: var(--muted); font-size: 13px; margin: 6px 0; }
+
+  /* 마우스를 올리면 뜨는 작은 창 */
+  #tip { position: fixed; z-index: 50; pointer-events: none; background: var(--fg); color: var(--bg); padding: 6px 10px; border-radius: 8px; font-size: 12.5px; line-height: 1.4;
+    transform: translate(-50%, calc(-100% - 10px)); white-space: nowrap; opacity: 0; transition: opacity .1s; }
+  #tip.on { opacity: 1; }
+  .foot { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <div class="brand"><img src="favicon.svg" alt=""><div><h1>큰법당 관리자</h1><small>templestay.site 현황판</small></div></div>
+    <span id="live-pill" class="live-pill off" hidden><i></i><span id="stamp">불러오는 중</span></span>
+    <button id="refresh" class="ghost" type="button" hidden>새로 불러오기</button>
+    <a href="./">← 법당으로</a>
+  </header>
+
+  <section id="login" class="card" hidden>
+    <h2>로그인</h2>
+    <div id="google-box" hidden>
+      <button id="google-btn" type="button" class="google"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M22.5 12.2c0-.8-.1-1.5-.2-2.2H12v4.2h5.9a5 5 0 0 1-2.2 3.3v2.7h3.5c2.1-1.9 3.3-4.7 3.3-8z"/><path fill="#34A853" d="M12 23c3 0 5.5-1 7.2-2.7l-3.5-2.7c-1 .7-2.2 1.1-3.7 1.1-2.9 0-5.3-1.9-6.2-4.5H2.2v2.8A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.8 14.2a6.6 6.6 0 0 1 0-4.3V7.1H2.2a11 11 0 0 0 0 9.9z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3.1.6 4.2 1.7l3.1-3.1A11 11 0 0 0 2.2 7.1l3.6 2.8C6.7 7.3 9.1 5.4 12 5.4z"/></svg>구글로 로그인</button>
+      <p id="g-err" class="err" role="alert"></p>
+      <p class="muted">관리자 구글 계정으로만 들어갈 수 있어요.</p>
+    </div>
+    <form id="login-form" autocomplete="off">
+      <label for="pw">관리자 비밀번호</label>
+      <input id="pw" type="password" autocomplete="current-password">
+      <p id="err" class="err" role="alert"></p>
+      <button type="submit">들어가기</button>
+      <p class="muted">이 기기에서 30일 동안 로그인이 유지돼요.</p>
+    </form>
+  </section>
+
+  <section id="dash" hidden style="display:grid;gap:16px">
+    <!-- 숫자 6칸 -->
+    <div class="kpis">
+      <div class="kpi live"><small>지금 접속</small><b id="k-online">-</b><em id="k-online-sub"></em></div>
+      <div class="kpi"><small>오늘 방문</small><b id="k-today">-</b><em id="k-today-sub"></em></div>
+      <div class="kpi"><small>오늘 입장</small><b id="k-joins">-</b><em id="k-joins-sub"></em></div>
+      <div class="kpi"><small>오늘 연등</small><b id="k-wish">-</b><em id="k-wish-sub"></em></div>
+      <div class="kpi"><small>평균 머문 시간</small><b id="k-stay">-</b><em id="k-stay-sub"></em></div>
+      <div class="kpi"><small>오늘 최고 동시접속</small><b id="k-peak">-</b><em id="k-peak-sub"></em></div>
+    </div>
+
+    <div class="grid">
+      <div class="card s8">
+        <div class="card-head"><h2>방문 잔디</h2>
+          <div class="seg" id="seg-days" role="group" aria-label="볼 숫자">
+            <button type="button" data-m="days" aria-pressed="true">방문</button><button type="button" data-m="joins" aria-pressed="false">입장</button><button type="button" data-m="wish" aria-pressed="false">연등</button><button type="button" data-m="peak" aria-pressed="false">최고 동시접속</button>
+          </div></div>
+        <div class="grass-wrap"><div id="grass-m" class="grass-months"></div><div id="grass" class="grass"></div></div>
+        <div class="grass-legend">적게 <i style="background:var(--grid)"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i> 많이 · 한 칸이 하루, 세로 한 줄이 한 주 (위가 일요일)</div>
+        <h3 style="margin-top:16px">최근 14일</h3>
+        <div id="days" class="vbars"></div><div id="days-x" class="xlab"></div>
+        <p id="days-head" class="headline"></p>
+      </div>
+      <div class="card s4">
+        <div class="card-head"><h2>몇 시에 많이 오나요</h2><span class="muted">최근 14일 · 한국 시각</span></div>
+        <div id="hours" class="vbars hours"></div><div id="hours-x" class="xlab"></div>
+        <p id="hours-head" class="headline"></p>
+      </div>
+
+      <div class="card s4">
+        <div class="card-head"><h2>지금 어디에 있나요</h2><span class="muted">모든 서버</span></div>
+        <div id="l-scenes" class="hbar plain"></div>
+        <h3 style="margin-top:16px">하고 있는 동작</h3>
+        <div id="l-acts" class="hbar plain"></div>
+      </div>
+      <div class="card s4">
+        <div class="card-head"><h2>서버별 인원</h2><span class="muted" id="srv-sub"></span></div>
+        <div id="servers" class="servers"></div>
+      </div>
+      <div class="card s4">
+        <div class="card-head"><h2>지금 인기</h2>
+          <div class="seg" id="seg-live" role="group" aria-label="지금 인기 종류"></div></div>
+        <div id="l-pop" class="hbar plain"></div>
+      </div>
+
+      <div class="card s6">
+        <div class="card-head"><h2>누적 순위</h2><span class="muted">들어올 때 고른 모습 · 많이 한 동작</span></div>
+        <div class="seg" id="seg-rank" role="group" aria-label="순위 종류" style="margin-bottom:14px"></div>
+        <div id="rank" class="hbar"></div>
+      </div>
+      <div class="card s6">
+        <div class="card-head"><h2>날짜별 한눈에</h2><span class="muted">최근 14일 · 한국 날짜</span></div>
+        <div class="tablewrap"><table id="daily" class="daily"></table></div>
+      </div>
+
+      <div class="card s7">
+        <div class="card-head"><h2>걸린 연등 <span id="w-count" class="badge"></span></h2>
+          <input id="w-find" type="search" placeholder="법명으로 찾기" aria-label="법명으로 찾기" style="font-size:14px;padding:6px 10px;max-width:180px"></div>
+        <p class="muted" style="margin:-6px 0 10px">소원 글은 비공개라 서버에도 없어요. 이상한 법명은 내리기.</p>
+        <div id="lanterns" class="lanterns"></div>
+      </div>
+      <div class="card s5">
+        <div class="card-head"><h2>신고 <span id="r-count" class="badge"></span></h2></div>
+        <div id="reports"></div>
+      </div>
+    </div>
+
+    <div class="foot">
+      <button id="logout" class="ghost" type="button">로그아웃</button>
+      <span class="muted">30초마다 저절로 새로 불러와요. 방문은 기기마다 하루 한 번 숫자만 세고, 누가 왔는지는 남기지 않아요.</span>
+    </div>
+  </section>
+</main>
+<div id="tip" role="tooltip"></div>
+
+<script type="module">
+  import { RELAY_URL, FIREBASE, SCENES, ACTIONS, CHAR_TYPES, hairName, OUTFITS, ACCESSORIES, LOCATIONS, BODIES, SERVER_COUNT, SERVER_CAP } from './js/data.js';
+  // 내 옆 친구 이름 (js/blocky.js 의 PETS 와 같게. 그 파일은 3D 그림 도구를 불러와서 여기서는 이름만 따로)
+  const PET_NAMES = { dog: '강아지', cat: '고양이', russianblue: '러시안 블루', hamster: '햄스터', bunny: '토끼', panda: '판다', squirrel: '다람쥐', turtle: '거북이', squid: '오징어', fishbowl: '어항 물고기', baekgu: '백구', otter: '수달',
+    ai: 'AI 짝꿍', claude: '클로드', drone: '드론', coffee: '커피잔', icecoffee: '아이스커피', book: '책 친구', laptop: '노트북', tablet: '태블릿', ghost: '꼬마 유령', pumpkin: '호박 등불', plant: '화분 친구', rocket: '꼬마 로켓', none: '친구 없이' };
+  const ACT_NAMES = { ...Object.fromEntries(ACTIONS.map((a) => [a.id, a.name])), walk: '산보', jump: '점프' };
+  const TYPE_NAMES = Object.fromEntries(CHAR_TYPES.map((t) => [t.id, `${t.hairF} / ${t.hairM}`]));
+  const TYPE_G_NAMES = Object.fromEntries(CHAR_TYPES.flatMap((t) => [[`${t.id}:f`, `${hairName(t, 'f')} · 여`], [`${t.id}:m`, `${hairName(t, 'm')} · 남`]]));
+  const OUTFIT_NAMES = { ...Object.fromEntries(OUTFITS.map((o) => [o.id, o.name])), own: '캐릭터 기본 옷' };
+  const ACC_NAMES = { ...Object.fromEntries(ACCESSORIES.map((a) => [a.id, a.name])), none: '장신구 없이' };
+  const DESIGN_NAMES = Object.fromEntries(LOCATIONS.map((l) => [l.id, l.name]));
+  const BODY_NAMES = Object.fromEntries(BODIES.map((b) => [b.id, b.label]));
+  const SCENE_NAMES = Object.fromEntries(Object.entries(SCENES).map(([k, v]) => [k, v.name]));
+
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const num = (n) => Number(n || 0).toLocaleString('ko-KR');
+  const mmss = (sec) => { sec = Math.round(sec || 0); return sec >= 3600 ? `${Math.floor(sec / 3600)}시간 ${Math.round((sec % 3600) / 60)}분` : sec >= 60 ? `${Math.floor(sec / 60)}분 ${sec % 60}초` : `${sec}초`; };
+  const kdayOf = (ms) => new Date(ms + 9 * 3600e3).toISOString().slice(0, 10);
+  const md = (d) => `${+d.slice(5, 7)}/${+d.slice(8)}`;
+  const wk = (d) => '일월화수목금토'[new Date(d + 'T00:00:00Z').getUTCDay()];
+  const hm = (t) => t ? new Date(t).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' }) : '';
+  // 어제와 견주기: 화살표 + 부호로 (색만으로 알리지 않게)
+  const delta = (a, b, unit = '') => !b ? (a ? '어제 0' : '어제와 같아요') : a === b ? `어제와 같아요 (${num(b)}${unit})` : `어제 ${num(b)}${unit} · ${a > b ? '▲' : '▼'} ${Math.abs(Math.round(((a - b) / b) * 100))}%`;
+
+  const KEY = 'maeum:adminToken'; // 법당 화면과 같은 입장권 (여기서 로그인하면 법당 화면에서도 관리자)
+  const getTok = () => { try { const t = localStorage.getItem(KEY) || ''; if (t && +t.split('.')[0] < Date.now()) { localStorage.removeItem(KEY); return ''; } return t; } catch { return ''; } };
+  const setTok = (v) => { try { v ? localStorage.setItem(KEY, v) : localStorage.removeItem(KEY); } catch {} };
+  let timer = null, S = null;
+  const view = { days: 'days', live: 'pets', rank: 'type' };
+
+  function show(logged) {
+    $('#login').hidden = logged; $('#dash').hidden = !logged; $('#live-pill').hidden = !logged; $('#refresh').hidden = !logged;
+    clearInterval(timer);
+    if (logged) { load(); timer = setInterval(load, 30000); } else setTimeout(() => $('#pw').focus(), 50);
+  }
+
+  async function load() {
+    const r = await fetch(`${RELAY_URL}/admin/stats`, { headers: { Authorization: `Bearer ${getTok()}` } }).catch(() => null);
+    if (!r) { $('#stamp').textContent = '서버에 닿지 않았어요'; $('#live-pill').classList.add('off'); return; }
+    if (r.status === 401) { setTok(''); return show(false); }
+    S = await r.json();
+    $('#live-pill').classList.remove('off');
+    $('#stamp').textContent = `실시간 · ${new Date().toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', second: '2-digit' })} 기준`;
+    render();
+    loadReports();
+  }
+
+  // 지난 n일 (한국 날짜, 오래된 날부터)
+  const lastDays = (n) => Array.from({ length: n }, (_, i) => kdayOf(Date.now() - (n - 1 - i) * 864e5));
+
+  function render() {
+    const s = S, today = kdayOf(Date.now()), yday = kdayOf(Date.now() - 864e5);
+    // ── 숫자 6칸
+    const rooms = Object.entries(s.rooms || {});
+    $('#k-online').innerHTML = `${num(s.online)}<u>명</u>`;
+    $('#k-online-sub').textContent = rooms.length ? `서버 ${rooms.length}곳에 있어요` : '지금은 아무도 없어요';
+    $('#k-today').innerHTML = `${num(s.today)}<u>명</u>`;
+    $('#k-today-sub').textContent = delta(s.today || 0, s.days?.[yday] || 0, '명');
+    $('#k-joins').innerHTML = `${num(s.joins?.[today])}<u>번</u>`;
+    $('#k-joins-sub').textContent = delta(s.joins?.[today] || 0, s.joins?.[yday] || 0, '번');
+    $('#k-wish').innerHTML = `${num(s.wishDays?.[today])}<u>개</u>`;
+    $('#k-wish-sub').textContent = `누적 ${num(s.wishTotal)}개 · 지금 걸린 ${num(s.wishes?.length)}개`;
+    const last7 = lastDays(7), sum = (m, ks) => ks.reduce((n, k) => n + (m?.[k] || 0), 0), n7 = sum(s.stayN, last7);
+    const avgToday = s.stayN?.[today] ? s.staySec[today] / s.stayN[today] : 0;
+    $('#k-stay').textContent = avgToday ? mmss(avgToday) : '-';
+    $('#k-stay-sub').textContent = n7 ? `최근 7일 평균 ${mmss(sum(s.staySec, last7) / n7)}` : '나간 분이 생기면 계산해요';
+    $('#k-peak').innerHTML = `${num(s.peaks?.[today]?.n)}<u>명</u>`;
+    $('#k-peak-sub').textContent = s.best?.n ? `역대 ${s.best.n}명 · ${new Date(s.best.at).toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })}` : '';
+
+    renderDays(); renderHours(); renderLive(); renderRank(); renderDaily(); renderLanterns();
+  }
+
+  // ── 최근 14일: 한 번에 한 숫자만 (축이 둘인 그래프는 만들지 않아요)
+  const DAY_METRICS = {
+    days: { name: '방문', unit: '명', get: (d) => S.days?.[d] || 0 },
+    joins: { name: '입장', unit: '번', get: (d) => S.joins?.[d] || 0 },
+    wish: { name: '연등', unit: '개', get: (d) => S.wishDays?.[d] || 0, amber: true },
+    peak: { name: '최고 동시접속', unit: '명', get: (d) => S.peaks?.[d]?.n || 0 },
+  };
+  // 잔디: 최근 20주. 진하기 4단계는 기록된 날 중 가장 많은 날 기준
+  function renderGrass() {
+    const M = DAY_METRICS[view.days], today = kdayOf(Date.now());
+    const dow = new Date(today + 'T00:00:00Z').getUTCDay(), weeks = 20, n = weeks * 7 - (6 - dow);
+    const ds = lastDays(n), vals = ds.map(M.get), max = Math.max(1, ...vals);
+    const lv = (v) => !v ? '' : v >= max * 0.75 ? 'l4' : v >= max * 0.5 ? 'l3' : v >= max * 0.25 ? 'l2' : 'l1';
+    $('#grass').innerHTML = ds.map((d, i) => `<i class="${lv(vals[i])}${d === today ? ' today' : ''}" data-tip="${md(d)} (${wk(d)}) · ${M.name} ${num(vals[i])}${M.unit}"></i>`).join('') + '<i class="future"></i>'.repeat(6 - dow);
+    // 위쪽 달 이름: 그 주에 1일이 있으면
+    $('#grass-m').innerHTML = Array.from({ length: weeks }, (_, w) => { const f = ds.slice(w * 7, w * 7 + 7).find((d) => d.endsWith('-01')); return `<span>${f ? +f.slice(5, 7) + '월' : ''}</span>`; }).join('');
+  }
+  function renderDays() {
+    renderGrass();
+    const M = DAY_METRICS[view.days], ds = lastDays(14), vals = ds.map(M.get), max = Math.max(1, ...vals), today = ds[13];
+    const top = vals.indexOf(Math.max(...vals));
+    $('#days').classList.toggle('amber', !!M.amber);
+    // 숫자는 오늘과 가장 많은 날에만 (나머지는 마우스를 올리면)
+    $('#days').innerHTML = ds.map((d, i) => `<div class="col${d === today ? ' hi' : ''}" data-tip="${md(d)} (${wk(d)}) · ${M.name} ${num(vals[i])}${M.unit}">${(d === today || (i === top && vals[i])) ? `<em style="bottom:${(vals[i] / max) * 100}%">${num(vals[i])}</em>` : ''}<i style="height:${(vals[i] / max) * 100}%"></i></div>`).join('');
+    $('#days-x').innerHTML = ds.map((d, i) => `<span>${(13 - i) % 2 ? '' : md(d)}</span>`).join('');   // 오늘부터 하루 걸러
+    const total = vals.reduce((a, b) => a + b, 0);
+    $('#days-head').innerHTML = total ? `14일 동안 ${M.name} <b>${num(total)}${M.unit}</b> · 하루 평균 ${num(Math.round(total / 14))}${M.unit} · 가장 많은 날 ${md(ds[top])} (${wk(ds[top])})` : '아직 기록이 없어요';
+  }
+
+  // ── 시간대: 최근 14일 24칸을 더해서
+  function renderHours() {
+    const hrs = Array(24).fill(0);
+    Object.entries(S.hours || {}).sort().slice(-14).forEach(([, a]) => a.forEach((n, h) => (hrs[h] += n)));
+    const max = Math.max(1, ...hrs), top = hrs.indexOf(Math.max(...hrs));
+    $('#hours').innerHTML = hrs.map((n, h) => `<div class="col${h === top && n ? ' hi' : ''}" data-tip="${h}시 ~ ${h + 1}시 · ${num(n)}명">${h === top && n ? `<em style="bottom:${(n / max) * 100}%">${num(n)}</em>` : ''}<i style="height:${(n / max) * 100}%"></i></div>`).join('');
+    $('#hours-x').innerHTML = hrs.map((_, h) => `<span>${h % 6 ? '' : h + '시'}</span>`).join('');
+    const label = (h) => `${h < 6 ? '새벽' : h < 12 ? '오전' : h < 18 ? '오후' : '저녁'} ${h % 12 || 12}시`;
+    $('#hours-head').innerHTML = hrs.some(Boolean) ? `<b>${label(top)}</b>에 가장 많이 와요` : '시간대 기록이 아직 없어요';
+  }
+
+  // 가로 막대 목록. rankMode 면 순위 · 비율까지
+  function hbar(el, map, names, empty, rankMode = false, limit = 10) {
+    const rows = Object.entries(map || {}).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]).slice(0, limit);
+    const total = Object.values(map || {}).reduce((a, b) => a + b, 0), max = Math.max(1, ...rows.map(([, n]) => n));
+    $(el).innerHTML = rows.length ? rows.map(([k, n], i) => `<div class="row${i === 0 ? ' top1' : ''}" data-tip="${esc(names[k] || k)} · ${num(n)}${rankMode ? `번 (${Math.round((n / total) * 100)}%)` : '명'}">
+      ${rankMode ? `<span class="no">${i + 1}</span>` : ''}<span class="name">${esc(names[k] || k)}</span><span class="track"><i style="width:${(n / max) * 100}%"></i></span><b>${rankMode ? `${Math.round((n / total) * 100)}<small>%</small>` : num(n)}</b></div>`).join('')
+      : `<p class="empty-note">${empty}</p>`;
+  }
+
+  // ── 지금: 장소 · 동작 · 서버 · 인기
+  const LIVE_TABS = [['pets', '친구', PET_NAMES], ['types', '머리', TYPE_NAMES], ['bodies', '체형', BODY_NAMES], ['designs', '디자인', DESIGN_NAMES]];
+  function renderLive() {
+    const L = S.live || {};
+    hbar('#l-scenes', L.scenes, SCENE_NAMES, '지금은 접속한 분이 없어요');
+    hbar('#l-acts', L.acts, ACT_NAMES, '하고 있는 동작이 없어요 (걷기 · 서 있기)');
+    $('#seg-live').innerHTML = LIVE_TABS.map(([k, n]) => `<button type="button" data-live="${k}" aria-pressed="${view.live === k}">${n}</button>`).join('');
+    const [k, , names] = LIVE_TABS.find(([x]) => x === view.live);
+    hbar('#l-pop', k === 'pets' ? L.pets : L[k], names, k === 'bodies' && !L.bodies ? '체형은 서버를 새로 올린 뒤부터 보여요' : '지금 고른 분이 없어요');
+    const rooms = S.rooms || {}, busy = Object.keys(rooms).length;
+    $('#srv-sub').textContent = `${SERVER_COUNT}곳 중 ${busy}곳 · 한 곳 ${SERVER_CAP}명까지`;
+    $('#servers').innerHTML = Array.from({ length: SERVER_COUNT }, (_, i) => {
+      const n = rooms[`hall-${i + 1}`] || 0;
+      return `<div class="srv${n ? '' : ' empty'}" data-tip="서버 ${i + 1} · ${n}명 / ${SERVER_CAP}명"><span>서버 ${i + 1}</span><b>${n}</b><span class="track"><i style="width:${Math.min(100, (n / SERVER_CAP) * 100)}%"></i></span></div>`;
+    }).join('');
+  }
+
+  // ── 누적 순위
+  const RANK_TABS = [['type', '머리', TYPE_G_NAMES], ['body', '체형', BODY_NAMES], ['pet', '친구', PET_NAMES], ['outfit', '옷', OUTFIT_NAMES], ['acc', '장신구', ACC_NAMES], ['design', '디자인', DESIGN_NAMES], ['act', '동작', ACT_NAMES]];
+  function renderRank() {
+    $('#seg-rank').innerHTML = RANK_TABS.map(([k, n]) => `<button type="button" data-rank="${k}" aria-pressed="${view.rank === k}">${n}</button>`).join('');
+    const [k, , names] = RANK_TABS.find(([x]) => x === view.rank);
+    hbar('#rank', S.tally?.[k], names, k === 'body' ? '체형 순위는 이번 업데이트부터 쌓여요' : '아직 쌓인 기록이 없어요', true);
+  }
+
+  // ── 날짜별 표 (새 날짜가 위)
+  function renderDaily() {
+    const s = S, today = kdayOf(Date.now()), ds = lastDays(14).reverse();
+    const cell = (v, txt = num(v)) => `<td class="${v ? '' : 'zero'}">${v ? txt : '0'}</td>`;
+    $('#daily').innerHTML = `<thead><tr><th>날짜</th><th>방문</th><th>입장</th><th>연등</th><th>평균 머묾</th><th>최고 동시</th></tr></thead><tbody>` + ds.map((d) => {
+      const st = s.stayN?.[d] ? s.staySec[d] / s.stayN[d] : 0;
+      return `<tr class="${d === today ? 'today' : ''}"><td>${md(d)} (${wk(d)})${d === today ? ' 오늘' : ''}</td>${cell(s.days?.[d])}${cell(s.joins?.[d])}${cell(s.wishDays?.[d])}${st ? `<td>${mmss(st)}</td>` : '<td class="zero">-</td>'}${cell(s.peaks?.[d]?.n)}</tr>`;
+    }).join('') + '</tbody>';
+  }
+
+  // ── 걸린 연등 (새것부터, 법명으로 찾기)
+  function renderLanterns() {
+    const q = $('#w-find').value.trim();
+    const all = [...(S.wishes || [])].reverse(), ws = q ? all.filter((w) => String(w.n || '').includes(q)) : all;
+    $('#w-count').textContent = all.length;
+    $('#lanterns').innerHTML = ws.length ? ws.map((w) => `<div class="lantern"><span class="dot" style="background:${/^#[0-9a-f]{3,8}$/i.test(w.c) ? w.c : '#ddd'}"></span><span>${esc(w.n || '이름 없음')}</span>${w.v ? `<span class="muted">마음 시주 ${num(w.v)}원</span>` : ''}<small>${w.at ? new Date(w.at).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '예전 연등'}</small><button class="ghost" type="button" data-unwish="${esc(w.id)}">내리기</button></div>`).join('')
+      : `<p class="empty-note">${q ? '찾는 법명의 연등이 없어요' : '걸린 연등이 없어요'}</p>`;
+  }
+  $('#w-find').addEventListener('input', () => S && renderLanterns());
+
+  // 지표 · 탭 고르기
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-m],[data-live],[data-rank]');
+    if (!b || !S) return;
+    if (b.dataset.m) { view.days = b.dataset.m; document.querySelectorAll('#seg-days button').forEach((x) => x.setAttribute('aria-pressed', x === b)); renderDays(); }
+    if (b.dataset.live) { view.live = b.dataset.live; renderLive(); }
+    if (b.dataset.rank) { view.rank = b.dataset.rank; renderRank(); }
+  });
+
+  // 마우스를 올리거나 누르면 작은 창
+  const tip = $('#tip');
+  const showTip = (el, x, y) => { tip.textContent = el.dataset.tip; tip.style.left = `${Math.min(innerWidth - 80, Math.max(80, x))}px`; tip.style.top = `${y}px`; tip.classList.add('on'); };
+  document.addEventListener('pointermove', (e) => { const el = e.target.closest('[data-tip]'); if (el && e.pointerType === 'mouse') showTip(el, e.clientX, e.clientY); else if (e.pointerType === 'mouse') tip.classList.remove('on'); });
+  document.addEventListener('pointerdown', (e) => { const el = e.target.closest('[data-tip]'); if (el && e.pointerType !== 'mouse') showTip(el, e.clientX, e.clientY); else if (e.pointerType !== 'mouse') tip.classList.remove('on'); });
+
+  async function loadReports() {
+    const r = await fetch(`${RELAY_URL}/admin/reports`, { headers: { Authorization: `Bearer ${getTok()}` } }).catch(() => null);
+    if (!r || !r.ok) return;
+    const { reports } = await r.json();
+    $('#r-count').textContent = reports.length;
+    $('#r-count').classList.toggle('alert', reports.length > 0);
+    $('#reports').innerHTML = reports.length ? reports.map((x) => `
+      <div class="report">
+        <div class="meta">${new Date(x.at).toLocaleString('ko-KR')} · 서버 ${esc(x.ctx?.server || '-')} · ${esc(x.ctx?.scene)} · 보낸 분 ${esc(x.ctx?.reporter || '-')}</div>
+        ${x.text ? `<p>${esc(x.text)}</p>` : ''}
+        ${x.img ? `<img src="${esc(x.img)}" alt="신고에 담긴 사진">` : ''}
+        ${x.ctx?.people?.length ? `<div class="meta">근처에 보인 분: ${x.ctx.people.map(esc).join(', ')}</div>` : ''}
+        <button class="ghost" type="button" data-del="${esc(x.id)}">확인했어요 (지우기)</button>
+      </div>`).join('') : '<p class="empty-note">들어온 신고가 없어요</p>';
+  }
+  $('#reports').addEventListener('click', async (e) => {
+    const im = e.target.closest('.report img');
+    if (im) { const w = window.open(); if (w) w.document.write(`<img src="${im.src}" style="max-width:100%">`); return; }
+    const b = e.target.closest('[data-del]');
+    if (!b) return;
+    b.disabled = true;
+    await fetch(`${RELAY_URL}/admin/report-delete`, { method: 'POST', headers: { Authorization: `Bearer ${getTok()}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ id: b.dataset.del }) }).catch(() => {});
+    loadReports();
+  });
+
+  // 연등 내리기: 모든 서버의 법당 천장에서 바로 사라져요
+  $('#lanterns').addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-unwish]');
+    if (!b || !confirm('이 연등을 내릴까요? 모든 서버의 법당에서 바로 사라져요.')) return;
+    b.disabled = true;
+    await fetch(`${RELAY_URL}/admin/wish-delete`, { method: 'POST', headers: { Authorization: `Bearer ${getTok()}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ id: b.dataset.unwish }) }).catch(() => {});
+    load();
+  });
+
+  $('#login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    $('#err').textContent = '';
+    const r = await fetch(`${RELAY_URL}/admin/login`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: $('#pw').value.trim() }) }).catch(() => null);
+    if (!r) return ($('#err').textContent = '서버에 닿지 않았어요. 잠시 뒤 다시 해 주세요');
+    if (r.status === 401) return ($('#err').textContent = '비밀번호가 맞지 않아요');
+    setTok((await r.json()).token);
+    $('#pw').value = '';
+    show(true);
+  });
+  // 구글 로그인: Firebase 로 구글 창을 띄우고, 받은 증표를 서버가 검사해서 입장권을 준다
+  if (FIREBASE.apiKey) {
+    $('#google-box').hidden = false;
+    $('#google-btn').addEventListener('click', async () => {
+      $('#g-err').textContent = '';
+      try {
+        const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+        const { getAuth, GoogleAuthProvider, signInWithPopup, signOut } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+        const auth = getAuth(initializeApp(FIREBASE));
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: 'select_account' });
+        const cred = await signInWithPopup(auth, provider);
+        const idToken = await cred.user.getIdToken();
+        signOut(auth).catch(() => {}); // 구글 쪽 로그인은 남기지 않고, 우리 입장권만 쓴다
+        const r = await fetch(`${RELAY_URL}/admin/google`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken }) });
+        if (r.status === 403) { const j = await r.json().catch(() => ({})); throw new Error(`${j.email || '이 계정'}은 관리자 계정이 아니에요`); }
+        if (!r.ok) throw new Error('로그인을 확인하지 못했어요. 잠시 뒤 다시 해 주세요');
+        setTok((await r.json()).token);
+        show(true);
+      } catch (err) {
+        if (err?.code === 'auth/popup-closed-by-user' || err?.code === 'auth/cancelled-popup-request') return;
+        $('#g-err').textContent = err?.code === 'auth/unauthorized-domain' ? '이 주소가 Firebase 승인된 도메인에 없어요' : err?.code === 'auth/operation-not-allowed' ? 'Firebase 에서 Google 로그인이 아직 꺼져 있어요' : err?.code === 'auth/popup-blocked' ? '팝업이 막혔어요. 팝업을 허용하고 다시 눌러 주세요' : (err?.message || '로그인하지 못했어요');
+      }
+    });
+  }
+  $('#refresh').addEventListener('click', load);
+  $('#logout').addEventListener('click', () => { setTok(''); show(false); });
+  show(!!getTok());
+</script>
+</body>
+</html>

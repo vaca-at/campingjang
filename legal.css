@@ -1,0 +1,17 @@
+/* 이용약관·개인정보처리방침 공용: 한지 바탕에 읽기 편한 한 줄 폭 */
+:root { --bg: #f6f1e7; --fg: #2b2420; --muted: #6d625a; --line: #e2d8c6; --jade: #2f6f62; --gold: #b98a32; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root { --bg: #1d1916; --fg: #efe7da; --muted: #b3a797; --line: #3d352e; --jade: #6fb5a5; --gold: #d9b066; color-scheme: dark; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15.5px/1.75 "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; word-break: keep-all; padding: 40px max(16px, env(safe-area-inset-right)) 64px max(16px, env(safe-area-inset-left)); }
+main { max-width: 68ch; margin: 0 auto; }
+h1 { font-family: "Gowun Batang", serif; font-size: 32px; margin: 8px 0 4px; }
+h2 { font-family: "Gowun Batang", serif; font-size: 19px; margin: 32px 0 8px; }
+p, ul, table { margin: 0 0 12px; }
+ul { padding-left: 20px; }
+li { margin: 4px 0; }
+a { color: var(--jade); }
+.meta, .back { color: var(--muted); font-size: 13px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 400; }
+.contact { border-left: 3px solid var(--jade); padding: 8px 12px; }

@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>사용 안내 · 큰법당 템플스테이</title>
+<meta name="description" content="큰법당 템플스테이 쓰는 법: 움직이기, 앉기와 동작, 소원 올리기, 꾸미기">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@700&family=Gowun+Dodum&display=swap">
+<link rel="stylesheet" href="legal.css">
+<style>
+  .toc { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; font-size: 14px; }
+  .toc a { white-space: nowrap; }
+  kbd { display: inline-block; min-width: 1.6em; padding: 0 6px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; font: 600 13px/1.6 "Gowun Dodum", sans-serif; text-align: center; }
+  .tip { border-left: 3px solid var(--jade); padding: 6px 12px; color: var(--muted); font-size: 14px; }
+  td:first-child { white-space: nowrap; }
+</style>
+</head>
+<body>
+<main>
+  <p class="back"><a href="./">← 큰법당 템플스테이로 돌아가기</a></p>
+  <h1>사용 안내</h1>
+  <p class="meta">회원가입 없이 바로 쓰는 3D 법당이에요. 처음 한 번만 훑어보면 돼요.</p>
+
+  <nav class="toc" aria-label="차례">
+    <a href="#start">들어가기</a><a href="#screen">화면 보기</a><a href="#move">움직이기</a><a href="#places">장소 4곳</a>
+    <a href="#sit">앉기와 동작</a><a href="#wish">소원 올리기</a><a href="#look">꾸미기</a>
+    <a href="#design">디자인·불상·탑</a><a href="#scroll">족자</a><a href="#server">서버</a><a href="#calm">크게 보기</a>
+    <a href="#record">내 기록</a><a href="#faq">자주 묻는 것</a>
+  </nav>
+
+  <h2 id="start">들어가기</h2>
+  <p>주소를 열면 두물머리 풍경이 도는 로딩 화면이 지나고 바로 법당 안으로 들어가요. 처음 오면 기본 캐릭터와 무작위 법명이 정해져 있어요. 꾸미기는 들어간 다음에 언제든 바꿀 수 있어요.</p>
+
+  <h2 id="screen">화면 한눈에 보기</h2>
+  <table>
+    <thead><tr><th>자리</th><th>무엇이 있나요</th></tr></thead>
+    <tbody>
+      <tr><td>위 왼쪽</td><td>지금 서버(큰법당 · 서버 N), 디자인</td></tr>
+      <tr><td>위 오른쪽</td><td>새로고침, 시계와 머문 시간, 소리 켜고 끄기, 메뉴</td></tr>
+      <tr><td>왼쪽 단추</td><td>디자인 고르기, 캐릭터 꾸미기, 소원 올리기</td></tr>
+      <tr><td>아래</td><td>장소 줄(마당·법당·공양간·내 방)과 동작 줄(합장~108배)</td></tr>
+    </tbody>
+  </table>
+  <p class="tip">버튼 위에 커서를 올리면 작은 설명이 떠요.</p>
+
+  <h2 id="move">움직이기</h2>
+  <ul>
+    <li><b>컴퓨터</b>: <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> 또는 방향키로 걸어요. 바닥을 누르면 그곳까지 걸어가요.</li>
+    <li><b>휴대폰</b>: 왼쪽 아래 동그란 조이스틱을 밀어서 걸어요. 바닥을 눌러도 돼요.</li>
+    <li><b>뛰기</b>: 마당과 내 방에서는 뛸 수 있어요. 컴퓨터는 <kbd>Shift</kbd>를 누른 채 움직이고, 휴대폰은 조이스틱을 끝까지 밀어요. 마당에서 멀리 있는 곳을 누르면 알아서 뛰어가요. 법당과 공양간에서는 조용히 걸어요.</li>
+    <li><b>점프</b>: 마당과 내 방에서 컴퓨터는 <kbd>Space</kbd>, 휴대폰은 오른쪽 아래 ↑ 단추를 눌러요. 다른 분들 화면에도 보여요.</li>
+    <li><b>둘러보기</b>: 화면을 끌면 카메라가 돌아가고, 마우스 휠이나 두 손가락으로 가까이·멀리 볼 수 있어요.</li>
+  </ul>
+
+  <h2 id="places">장소 4곳</h2>
+  <table>
+    <thead><tr><th>장소</th><th>하는 일</th></tr></thead>
+    <tbody>
+      <tr><td>마당</td><td>법당 뒤를 돌아 마당 가장자리를 걷는 산보. 탑과 석등, 디자인마다 다른 풍경</td></tr>
+      <tr><td>법당</td><td>방석 100개, 불상과 탱화, 복전함. 법당 안에서는 모두 회색 승복을 입어요</td></tr>
+      <tr><td>공양간</td><td>마주 보고 앉아 발우로 밥을 먹는 발우공양 (60자리)</td></tr>
+      <tr><td>내 방</td><td>나만 들어가는 방. 경상 앞에 앉아 책을 읽어요. 다른 분들은 보이지 않아요</td></tr>
+    </tbody>
+  </table>
+  <p>아래 장소 줄을 누르거나, 법당 문으로 걸어 나가면 마당으로 가요.</p>
+
+  <h2 id="sit">앉기와 동작</h2>
+  <ul>
+    <li>빈 방석이나 자리를 누르면 그 자리까지 걸어가서 앉아요. 다른 분이 앉은 자리는 앉을 수 없어요.</li>
+    <li>움직이면 일어나요. 앉아 있을 때 나오는 "일어서기"를 눌러도 돼요.</li>
+    <li>아래 동작 줄: 합장, 반배, 큰절, 염주, 명상, 손인사, 108배. 키보드 숫자 <kbd>1</kbd>~<kbd>7</kbd>도 차례대로 같은 동작이에요.</li>
+    <li>염주·명상·108배는 다시 누를 때까지 이어져요. 108배는 횟수를 세어 줘요.</li>
+    <li>다른 분이 동작을 하면 화면 위에 "○○님이 합장으로 인사했어요" 같은 알림이 떠요.</li>
+  </ul>
+
+  <h2 id="wish">소원 올리기</h2>
+  <ol>
+    <li>법당 안 불상 앞 복전함으로 가거나, 왼쪽 소원 단추를 눌러요.</li>
+    <li>소원을 쓰고(80자까지) 연등 색과 마음 시주를 골라요.</li>
+    <li>"복전함에 넣기"를 누르면 소원지가 복전함에 들어가고, 연등이 천장으로 올라가 걸려요.</li>
+  </ol>
+  <p>연등은 같은 서버의 다른 분들도 보지만, 소원 글은 <b>나만</b> 볼 수 있어요. 내 연등을 누르면 내 소원이, 다른 분 연등을 누르면 법명만 보여요. 서버마다 최근 60개까지 걸려요. 마음 시주는 가상 금액이라 실제로 돈이 나가지 않아요. 내가 올린 소원은 메뉴 "내가 올린 소원"에서 다시 볼 수 있어요.</p>
+
+  <h2 id="look">꾸미기</h2>
+  <ul>
+    <li>메뉴 또는 왼쪽 꾸미기 단추에서 법명, 여자·남자, 캐릭터 8가지, 피부색, 옷, 장신구, 내 옆 친구를 골라요.</li>
+    <li><b>내 옆 친구</b>는 어디든 졸졸 따라오고, 내가 앉으면 옆에 앉아요. 다른 분들 화면에도 보여요.</li>
+    <li>어떤 옷을 골라도 <b>법당 안에서는 회색 승복</b>을 입고, 나오면 고른 옷으로 돌아와요.</li>
+  </ul>
+
+  <h2 id="design">디자인·불상·탑</h2>
+  <ul>
+    <li><b>디자인</b>: 단풍 산(수목원 산자락), 두물머리 물안개(두물머리 산꼭대기), 남해 윤슬(남해 바위 절벽) 가운데 건물·배경·마당을 골라요. 내 화면의 풍경만 바뀌고, 서버와 함께 있는 분들은 그대로예요.</li>
+    <li><b>불상·탑</b>: 메뉴 "불상·탑 고르기"에서 ‹ › 로 넘겨요. 법당 불상 6점(국가유산청·국립중앙박물관 3D 자료, 기본은 합장한 금동보살좌상 판불), 마당 탑 5기 가운데 골라요. 불상이나 탑을 눌러도 이 창이 열려요.</li>
+  </ul>
+
+  <h2 id="scroll">내 방 족자</h2>
+  <p>내 방 족자에는 일체유심조, 무소유, 인연생기, 자비, 마음 속 부처 찾기 가운데 하나가 무작위로 걸려요. 방에 들어갈 때마다, 머무는 동안에는 3분마다 바뀌어요.</p>
+
+  <h2 id="server">서버</h2>
+  <p>모두 <b>큰법당 서버 1~12</b> 가운데 하나에 들어가요. 서버마다 100명까지이고, 처음에는 자리가 남은 서버 중 사람이 가장 많은 곳으로 자동으로 들어가요. 친구와 같은 곳에서 만나려면 왼쪽 위치 단추(📍)를 눌러 같은 서버 번호를 고르세요.</p>
+
+  <h2 id="calm">크게 보기</h2>
+  <p>메뉴 "크게 보기"를 누르면 버튼이 모두 사라지고 카메라가 내 캐릭터 둘레를 천천히 돌아요. 화면보호기처럼 켜 두기 좋아요. 화면을 누르거나 아무 키나 누르면 돌아와요. 5분 동안 손대지 않으면 저절로 켜져요.</p>
+
+  <h2 id="record">내 기록</h2>
+  <p>메뉴 "내 기록"에서 오늘과 최근 날짜별로 산보·법당·공양·독서에 머문 시간, 절 횟수, 올린 소원 수를 볼 수 있어요. 기록은 로그인 없이 <b>이 기기의 이 브라우저에만</b> 남아요.</p>
+
+  <h2 id="faq">자주 묻는 것</h2>
+  <ul>
+    <li><b>친구가 안 보여요.</b> 서버 번호가 다른지 위 왼쪽 서버 칩에서 확인하세요. 내 방에서는 서로 보이지 않아요. 친구가 다른 장소(마당·공양간)에 있을 수도 있어요.</li>
+    <li><b>소리가 안 나요.</b> 브라우저 규칙상 화면을 한 번 눌러야 소리가 나요. 위 오른쪽 소리 단추도 확인하세요.</li>
+    <li><b>캐릭터와 기록이 사라졌어요.</b> 브라우저의 사이트 데이터를 지우면 함께 지워져요. 다른 기기·다른 브라우저와는 이어지지 않아요.</li>
+    <li><b>화면이 이상해요.</b> 위 오른쪽 새로고침을 눌러 보세요.</li>
+  </ul>
+
+  <h2>더 보기</h2>
+  <p><a href="terms.html">이용약관</a> · <a href="privacy.html">개인정보처리방침</a> · 문의 <a href="mailto:202609vibe@gmail.com">202609vibe@gmail.com</a></p>
+</main>
+</body>
+</html>
