@@ -2221,6 +2221,7 @@ export function buildCampRoom(loc, kind) {
     napSpot = { pos: new THREE.Vector3(-L + 0.85, 0.74, 1.05), rot: 0 };   // 뒤쪽 침대 위
     bounds = { minX: -L + 1.6, maxX: L - 1.2, minZ: -W + 0.3, maxZ: W - 0.9 };
     camDist = 1.6; maxDist = 2.2;
+    var faceYaw = -0.45, faceR = 1.3, faceY = 0.12;   // 캠핑카: 앞이 창 벽이라 동작할 때 카메라는 탁자 위 비스듬한 앞에서
   } else {
     // 카바나: 나무 A자 오두막. 앞 박공 전체가 큰 유리창, 옆에 벽난로와 책장
     const W = 3.2, D = 3.6, RIDGE = 4.6;
@@ -2281,7 +2282,7 @@ export function buildCampRoom(loc, kind) {
   if (bedding) { bedding.scale.z = 0.01; bedding.visible = false; }
   return {
     group: g, floor, seats: [seat], exitDoor: null,
-    spawn: seat.pos.clone(), spawnRot: 0, camRise, camLookY, napSpot, beddings: bedding ? { nap: bedding } : {},
+    spawn: seat.pos.clone(), spawnRot: 0, camRise, camLookY, napSpot, faceYaw: typeof faceYaw === 'number' ? faceYaw : undefined, faceR: typeof faceR === 'number' ? faceR : undefined, faceY: typeof faceY === 'number' ? faceY : undefined, beddings: bedding ? { nap: bedding } : {},
     spots: {
       ...(napSpot ? { nap: { x: napSpot.pos.x, z: napSpot.pos.z, rot: napSpot.rot } } : {}),
       // 스트레칭 · 춤은 넓은 쪽에 서서 (의자 · 침대에 가리지 않게)

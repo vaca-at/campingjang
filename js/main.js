@@ -378,13 +378,13 @@ function sitOn(seat, { auto = false } = {}) {
 
 // 앉으면 카메라가 옆으로 천천히 돌아 앞에서 내 얼굴을 비춘다. 화면을 끌거나 걸으면 바로 멈춘다
 let camTurn = null;
-function turnCameraToFace(dist) {
+function turnCameraToFace(dist, { high = false } = {}) {
   const g = S.me.group;
   const off = camera.position.clone().sub(controls.target);
   camTurn = {
     t: 0,
     from: { yaw: Math.atan2(off.x, off.z), r: Math.hypot(off.x, off.z), y: off.y, at: controls.target.clone() },
-    to: { yaw: g.rotation.y + 0.4, r: dist * 0.8, y: dist * 0.2, at: g.position.clone().add(new THREE.Vector3(0, 0.95, 0)) },
+    to: { yaw: g.rotation.y + (S.active.faceYaw ?? 0.4), r: Math.min(S.active.faceR ?? 99, dist * (high ? 0.6 : 0.8)), y: S.active.faceY ?? dist * (high ? 0.75 : 0.2), at: g.position.clone().add(new THREE.Vector3(0, 0.95, 0)) },
   };
 }
 function stepCameraTurn(dt) {
@@ -518,7 +518,12 @@ function doAction(id) {
     else if (S.me.group.position.y > 0.01 && !S.me.seated) { S.me.group.position.y = 0; sitOn(S.active.seats[0], { auto: true }); }
   } else if (on && spotArrived === id && S.spotY != null) { S.seat = null; S.me.seated = false; S.me.group.position.y = S.spotY; }   // 해먹 · 매트 위로
   else if (!on || !['hammock', 'stargaze'].includes(id)) { if (S.me.group.position.y > 0.01 && !S.me.seated && S.scene !== 'room') S.me.group.position.y = 0; }
-  if (S.scene === 'room') placeCameraBehind(S.active.camDist || 2.4);
+  // 제자리 동작을 시작하면 카메라가 앞쪽(살짝 옆)으로 천천히 돌아와 얼굴과 손이 보이게. 누운 동작은 조금 위에서
+  // (걸어 다니는 동작 · 산책 · 조리대 앞 동작은 그대로)
+  if (on && !MOVING_ACTS.has(id) && !S.active.spots?.[id]?.sideCam) {
+    const dist = S.scene === 'room' ? (S.active.maxDist || 3) * 1.05 : Math.min(S.active.camDist || 5, 6);   // 텐트 안은 좁아서 끝까지 물러나서
+    turnCameraToFace(dist, { high: ['nap', 'hammock', 'stargaze'].includes(id) });
+  }
   // 조리대 앞 동작(요리 · 고기 굽기 · 설거지): 등만 보이지 않게 카메라를 옆으로 돌려 손과 냄비가 보이게
   if (on && spotArrived === id && S.active.spots?.[id]?.sideCam) {
     const g = S.me.group, f = new THREE.Vector3(Math.sin(g.rotation.y), 0, Math.cos(g.rotation.y)), side = new THREE.Vector3(f.z, 0, -f.x);
