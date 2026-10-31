@@ -124,20 +124,8 @@
   <div id="bae-counter" class="glass" hidden></div>
   <!-- 표정 고르기: 말 대신 얼굴로 -->
   <div id="face-pop" class="glass" hidden role="group" aria-label="표정"></div>
-  <!-- 염주 돌리기: 108알 염주가 1초에 한 알씩 넘어가고 가운데에 센 수 -->
-  <div id="mala" hidden aria-live="polite"><svg viewBox="-110 -110 220 220" aria-hidden="true"><g id="mala-ring"></g></svg><div class="mala-n"><b id="mala-count">0</b><small>/ 108</small><em id="mala-round"></em></div></div>
-  <div id="meal-timer" class="glass" hidden><small>발우공양</small><b>10:00</b><small>남음</small></div>
-  <div id="meal-done" class="glass" hidden>
-    <b id="meal-done-title">공양을 마쳤어요. 나갈까요?</b>
-    <p id="meal-done-next"></p>
-    <div class="row">
-      <button id="meal-leave" class="small-btn"><span class="lbl">마당으로 나가기</span></button>
-      <button id="meal-stay" class="small-btn"><span class="lbl">조금 더 앉아 있기</span></button>
-    </div>
-  </div>
   <div id="context-btns">
     <div id="side-acts"></div>
-    <button id="btn-wish" class="glass ctx" hidden><span class="lbl">소원 올리기</span><small class="cap">소원지를 쓰면 연등으로 걸려요</small></button>
     <button id="btn-go" class="glass ctx"><span class="lbl">캠프 마당으로</span></button>
     <button id="btn-yard" class="glass ctx" hidden><span class="lbl">물가로</span></button>
     <button id="btn-sanbo" class="glass ctx" hidden aria-pressed="false"><span class="lbl">산보하기</span><small class="cap">세 걸음마다 반배하며 마당 돌기</small></button>
@@ -220,21 +208,6 @@
 </div>
 
 
-<!-- 내 방 족자 문구 -->
-<div id="scroll-modal" class="modal" hidden>
-  <div class="sheet wide-sheet">
-    <header class="panel-head"><h2>내 방 족자 문구</h2><button class="icon-btn" data-close="scroll-modal" aria-label="닫기"><span class="lbl">✕</span><small class="cap">닫기</small></button></header>
-    <p class="sub">체크한 문구 가운데 하나가 무작위로 걸려요. 방에 들어갈 때마다, 머무는 동안에는 3분마다 바뀌어요. 족자를 눌러도 이 창이 열려요.</p>
-    <div id="scroll-rows" class="sched-rows"></div>
-    <div class="row wrap">
-      <button id="scroll-add" class="ghost small-btn" type="button"><span class="lbl">+ 문구 더하기</span><small class="cap">10자까지, 풀이는 16자까지</small></button>
-      <button id="scroll-reset" class="ghost small-btn" type="button"><span class="lbl">기본 문구로</span><small class="cap">일체유심조·무소유·인연생기·자비·마음 속 부처 찾기</small></button>
-    </div>
-    <button id="scroll-save" class="primary wide" type="button"><span class="lbl">저장하기</span><small class="cap">이 기기에 저장되고 바로 걸려요</small></button>
-  </div>
-</div>
-
-<!-- 내 기록 -->
 <!-- 내 기록 · 설정: 내 기록 · 사진 · 이름 · 환경 -->
 <div id="settings-modal" class="modal" hidden>
   <div class="sheet wide-sheet">
@@ -270,29 +243,6 @@
   </div>
 </div>
 
-<!-- 소원 쓰기 -->
-<div id="wish-modal" class="modal" hidden>
-  <form id="wish-form" class="sheet">
-    <header class="panel-head"><h2>소원지 쓰기</h2><button type="button" class="icon-btn" data-close="wish-modal" aria-label="닫기"><span class="lbl">✕</span><small class="cap">닫기</small></button></header>
-    <p class="sub">쓴 소원은 연등이 되어 법당 천장에 걸려요. 다른 분들께는 연등만 보이고, 소원 글은 나만 볼 수 있어요.</p>
-    <label class="field" for="wish-text">소원
-      <textarea id="wish-text" maxlength="80" rows="3" placeholder="가족 모두 건강하게 해주세요" required></textarea>
-    </label>
-    <div class="group"><h3>연등 색</h3><div id="wish-colors" class="swatches"></div></div>
-    <div class="group"><h3>마음 시주</h3><div id="wish-amounts" class="chips"></div>
-      <p class="muted small">가상 시주예요. 실제로 돈이 나가지 않아요.</p></div>
-    <button class="primary wide" type="submit"><span class="lbl">복전함에 넣기</span><small class="cap">소원지가 복전함에 들어가고 연등이 올라가요</small></button>
-  </form>
-</div>
-
-<!-- 내 소원 목록 -->
-<div id="mywish-modal" class="modal" hidden>
-  <div class="sheet">
-    <header class="panel-head"><h2>내가 올린 소원</h2><button class="icon-btn" data-close="mywish-modal" aria-label="닫기"><span class="lbl">✕</span><small class="cap">닫기</small></button></header>
-    <ul id="mywish-list" class="wish-list"></ul>
-  </div>
-</div>
-
 <!-- 사진 찍기: 버튼을 모두 숨기고 아래 셔터만 -->
 <div id="photo-bar">
   <button id="photo-close" class="photo-btn" type="button"><span class="lbl">닫기</span></button>
@@ -303,33 +253,6 @@
 <div id="photo-flash"></div>
 
 <!-- 캠핑 음악 -->
-<!-- 반야심경 타자 사경 -->
-<div id="typing-modal" class="modal" hidden>
-  <div class="sheet typing-sheet">
-    <header class="panel-head"><h2>반야심경 타자 사경</h2><button class="icon-btn" data-close="typing-modal" aria-label="닫기"><span class="lbl">✕</span><small class="cap">닫기</small></button></header>
-    <div id="ty-play">
-      <div class="ty-stats">
-        <div><small>타자 속도</small><b id="ty-speed">0</b><u>타/분</u></div>
-        <div><small>정확도</small><b id="ty-acc">100</b><u>%</u></div>
-        <div><small>시간</small><b id="ty-time">0:00</b></div>
-        <div><small>진행</small><b id="ty-prog">0 / 28</b></div>
-      </div>
-      <div class="ty-track"><i id="ty-bar"></i></div>
-      <div class="ty-scroll">
-        <p id="ty-prev" class="ty-side"></p>
-        <p id="ty-target" class="ty-target" aria-live="polite"></p>
-        <p id="ty-next" class="ty-side"></p>
-      </div>
-      <input id="ty-in" class="ty-in" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="위 경전 줄을 그대로 쳐요" placeholder="여기에 위 줄을 그대로 쳐요">
-      <p class="sub ty-help">한 줄을 다 맞게 치면 다음 줄로 넘어가요. 띄어쓰기도 똑같이. <span id="ty-best"></span></p>
-    </div>
-    <div id="ty-done" class="ty-done" hidden>
-      <p id="ty-done-text"></p>
-      <button id="ty-again" class="primary"><span class="lbl">다시 옮겨 쓰기</span></button>
-    </div>
-  </div>
-</div>
-
 <!-- 도감 -->
 <div id="dex-modal" class="modal" hidden>
   <div class="sheet">

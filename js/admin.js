@@ -31,7 +31,7 @@ function setAdmin(on) {
 
 // 새로고침: 브라우저가 기억해 둔 예전 파일(사이트가 10분 동안 기억하게 함)까지 새로 받아 와서 다시 연다
 const FILES = ['index.html', 'style.css', 'js/main.js', 'js/data.js', 'js/avatar.js', 'js/blocky.js', 'js/world.js', 'js/net.js',
-  'js/audio.js', 'js/scrolls.js', 'js/tip.js', 'js/admin.js', 'js/share.js', 'js/typing.js', 'js/daytime.js', 'js/report.js'];
+  'js/audio.js', 'js/tip.js', 'js/admin.js', 'js/share.js', 'js/daytime.js', 'js/report.js'];
 $('#btn-reload')?.addEventListener('click', async () => {
   await Promise.all(FILES.map((f) => fetch(f, { cache: 'reload' }).catch(() => {})));
   location.reload();

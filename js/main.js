@@ -1,5 +1,5 @@
-// 앱 흐름: 로딩(두물머리 풍경이 돈다) → 바로 법당 안 → 꾸미기·시간표는 들어간 다음에.
-// 장소는 마당(out) · 법당(in) · 공양간(meal) · 내 방(room). 시간표가 바뀌는 때마다 캐릭터가 알아서 옮겨 간다.
+// 앱 흐름: 바로 캠프 마당으로 → 꾸미기는 들어간 다음에.
+// 장소는 캠프 마당(in) · 물가(out) · 취사장(meal) · 내 자리(room).
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
@@ -7,14 +7,13 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import {
   LOCATIONS, COMMON_ACTIONS, COMMON_SCENES, CHAR_TYPES, OUTFITS, ACCESSORIES, SKIN_TONES, ACTIONS, SERVER_COUNT, SERVER_CAP, GENDERS,
-  SCENES, SCENE_ACTIONS, SCENE_ACTION_NAMES, BODIES, FACES, hairName, season, inSeason, BUDDHAS, randomName, defaultLook, isOldAutoName,
+  SCENES, SCENE_ACTIONS, SCENE_ACTION_NAMES, BODIES, FACES, hairName, season, inSeason, randomName, defaultLook, isOldAutoName,
 } from './data.js';
 import { PETS } from './blocky.js';
 import { Avatar } from './avatar.js';
-import { buildInterior, buildExterior, buildMealHall, buildRoom, buildBoriamView, buildLantern, paintView, PAGODAS, setPanorama } from './world.js';
+import { buildBoriamView, setPanorama } from './world.js';
 import { Net, preloadNet } from './net.js';
-import { hangScroll, stopScrolls } from './scrolls.js';
-import { setSound, sound, moktak, bowl, coin, bigBell, sfx, startSfx, setAmbience, trackFolder, TRACKS, setMusic, music } from './audio.js';
+import { setSound, sound, sfx, startSfx, setAmbience, trackFolder, TRACKS, setMusic, music } from './audio.js';
 import { buildCampsite, buildShore, buildShelterRoom, buildCampKitchen, yardBase, SHELTERS, shelterOf } from './camp.js';
 import { addPhoto, listPhotos, removePhoto } from './album.js';
 import { launchFirework, stepFireworks, addToDex, renderDex, loadDex } from './fun.js';
@@ -39,8 +38,6 @@ const fmtLong = (sec) => {
 const toMin = (hhmm) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
 const today = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-// 다른 분에게 보내는 연등: 소원 글은 빼고 색·법명·시주만
-const publicWish = ({ id, n, c, v }) => ({ id, n, c, v });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ───────── 렌더러 ─────────
@@ -98,8 +95,6 @@ const S = {
   seat: null,
   target: null,
   remotes: new Map(),
-  wishes: [],
-  lanterns: new Map(),
   enteredAt: 0,
   mode: 'loading', // loading | world | gallery
   walking: false,
@@ -131,25 +126,18 @@ const net = new Net({
     const def = ACTIONS.find((a) => a.id === d.a);
     if (r && def && !def.auto && d.on !== false && r.st.s === S.scene) toast(`${r.st.n}님이 ${def.verb}`);
   },
-  onWish: (peer, w, backlog) => addWish(w, { animate: !backlog, announce: !backlog }),
-  // 관리자가 내린 연등은 천장에서도 바로 내린다
-  onUnwish: (id) => {
-    S.wishes = S.wishes.filter((w) => w.id !== id);
-    const l = S.lanterns.get(id);
-    if (l) { l.removeFromParent(); S.lanterns.delete(id); }
-  },
   onLeave: (peer) => removeRemote(peer, true),
   onReset: () => { for (const id of [...S.remotes.keys()]) removeRemote(id, false); },
   // 다시 붙었을 때: 서버가 알려 준 분들만 남기고 정리 (그대로 있는 분은 다시 '오셨어요' 하지 않게)
   onKeep: (ids) => { for (const id of [...S.remotes.keys()]) if (!ids.includes(id)) removeRemote(id, false); },
   onFull: (n) => { toast(`서버 ${n}이 가득 차서 다른 서버로 옮겨요`); switchServer(n % SERVER_COUNT + 1); },
-  getWishes: () => S.wishes.map(publicWish),
+  getWishes: () => [],
   peerCount: () => S.remotes.size,
 });
 
 // ───────── 월드 ─────────
 const BUILDERS = { in: buildCampsite, out: buildShore, meal: buildCampKitchen, room: buildShelterRoom, boriam: buildBoriamView };
-// 창밖 풍경: 바깥 3D 풍경을 법당 자리(건물은 숨기고)에서 네 방향으로 찍어 이어 붙인 사진을 창에 붙여요.
+// 창밖 풍경: 바깥 3D 풍경을 마당 한가운데에서 네 방향으로 찍어 이어 붙인 사진을 창에 붙여요.
 // 디자인마다 한 번만, 화면이 한가할 때 따로 만든 작은 그림판(렌더러)으로 찍어서 지금 화면은 멈추지 않아요
 const panoDone = new Set();
 function capturePanorama(loc) {
@@ -162,7 +150,7 @@ function capturePanorama(loc) {
       r2.setSize(FW, FH, false);
       r2.toneMapping = renderer.toneMapping; r2.toneMappingExposure = 1.15; r2.outputColorSpace = renderer.outputColorSpace;
       const w = yardBase(loc);   // 바닷가는 해변 마당 풍경으로
-      // 마당 위 물건(법당 · 탑 · 난간 · 석등)은 숨기고 먼 풍경만 찍어요
+      // 마당 위 물건은 숨기고 먼 풍경만 찍어요
       if (w.hall) w.hall.visible = false;
       if (w.pagodaSlot) w.pagodaSlot.visible = false;
       w.group.traverse((o) => { if (o.isMesh && o !== w.floor && o.position.length() < 30 && o.geometry?.type !== 'PlaneGeometry' && !o.isInstancedMesh && o.parent === w.group && Math.abs(o.position.y) < 6) o.visible = false; });
@@ -195,74 +183,10 @@ function worldFor(locId, which) {
   if (!w[which]) {
     const loc = LOCATIONS.find((l) => l.id === locId);
     w[which] = BUILDERS[which](loc);
-    if (w[which].setPagoda) applyPagoda(w[which]);
     if (['in', 'room', 'meal'].includes(which)) capturePanorama(loc);
   }
   return w[which];
 }
-
-// 실제 불상 3D 스캔 (국립중앙박물관). 법당에서 불상 쪽에 커서를 올리면 ‹ › 로 넘겨 볼 수 있고, 고른 불상은 이 기기에 남는다.
-// ?buddha=iron 처럼 주소로도 고를 수 있다
-const BUDDHA_IDS = Object.keys(BUDDHAS);
-let buddhaId = [params.get('buddha'), store.get('buddha', null)].find((id) => BUDDHAS[id]) || BUDDHA_IDS[0];
-const buddhaGLB = {};
-async function loadBuddha(world, id = buddhaId) {
-  if (!world?.buddhaSlot || !BUDDHAS[id]) return;   // 캠핑장에는 불상이 없어요
-  if (world.buddhaSlot.userData.scan === id) return;
-  const B = BUDDHAS[id];
-  try {
-    if (!buddhaGLB[id]) {
-      const loader = new GLTFLoader();
-      loader.setMeshoptDecoder(MeshoptDecoder);
-      buddhaGLB[id] = loader.loadAsync(B.file);
-    }
-    const gltf = await buddhaGLB[id];
-    if (id !== buddhaId) return; // 불러오는 사이 다른 불상을 골랐으면 그쪽을 건다
-    const model = new THREE.Group();
-    const inner = gltf.scene.clone(true);
-    if (B.zUp) inner.rotation.x = -Math.PI / 2;
-    model.add(inner);
-    const box = new THREE.Box3().setFromObject(model);
-    model.scale.setScalar((B.height || 4.6) / box.getSize(new THREE.Vector3()).y);
-    box.setFromObject(model);
-    const c = box.getCenter(new THREE.Vector3());
-    model.position.set(-c.x, -box.min.y, -c.z);
-    model.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
-    world.buddhaSlot.clear();
-    world.buddhaSlot.add(model);
-    world.buddhaSlot.userData.scan = id;
-  } catch (e) { console.warn('불상 모델을 불러오지 못해 기본 불상을 써요', e); }
-}
-
-// 불상·탑 고르기: 메뉴의 설정 창에서 ‹ › 로 넘긴다 (화면을 가리지 않게). 고른 것은 이 기기에 남는다
-function stepBuddha(step) {
-  const i = BUDDHA_IDS.indexOf(buddhaId);
-  buddhaId = BUDDHA_IDS[(i + step + BUDDHA_IDS.length) % BUDDHA_IDS.length];
-  store.set('buddha', buddhaId);
-  for (const w of Object.values(S.worlds)) if (w.in) loadBuddha(w.in);
-  renderRelics();
-}
-
-const PAGODA_IDS = PAGODAS.map((p) => p.id);
-let pagodaId = [params.get('pagoda'), store.get('pagoda', null)].find((id) => PAGODA_IDS.includes(id)) || PAGODA_IDS[0];
-function applyPagoda(world) { if (world.pagodaSlot.userData.id !== pagodaId) world.setPagoda(pagodaId); }
-function stepPagoda(step) {
-  const i = PAGODA_IDS.indexOf(pagodaId);
-  pagodaId = PAGODA_IDS[(i + step + PAGODA_IDS.length) % PAGODA_IDS.length];
-  store.set('pagoda', pagodaId);
-  for (const w of Object.values(S.worlds)) if (w.out) applyPagoda(w.out);
-  renderRelics();
-}
-
-function renderRelics() {
-  const B = BUDDHAS[buddhaId];
-  $('#relic-b-name').textContent = B.name;
-  $('#relic-b-sub').textContent = `${B.from} · ${B.no} · ${BUDDHA_IDS.indexOf(buddhaId) + 1} / ${BUDDHA_IDS.length}`;
-  const P = PAGODAS.find((p) => p.id === pagodaId);
-  $('#relic-p-name').textContent = P.name;
-  $('#relic-p-sub').textContent = `${P.from} · ${P.note} · ${PAGODA_IDS.indexOf(pagodaId) + 1} / ${PAGODA_IDS.length}`;
-}
-function openRelics() { renderRelics(); $('#relic-modal').hidden = false; }
 
 function setWorld(world) {
   if (S.active) scene.remove(S.active.group);
@@ -288,29 +212,10 @@ const dayNow = () => (S.loc?.night ? 0 : daylight());
 const glowNow = () => (S.loc?.night ? { morning: 0, evening: 0 } : glow());
 setInterval(() => { if (S.active) { scene.environmentIntensity = ENV * applyDaylight(S.active, dayNow(), glowNow()); S.active.campfire?.userData.setLit(dayNow() < 0.5); setAmbience(ambienceFor()); } }, 30000);
 
-// 정각마다 범종 한 번 (소리를 켠 분만 들려요)
-let bellHour = null;
-// 다른 창에 있으면 타이머가 늦게 돌아서, 정각부터 2분 안이면 울려요 (창으로 돌아온 순간에도 확인)
-function hourBell() {
-  const k = new Date(Date.now() + 9 * 3600e3);
-  if (k.getUTCMinutes() > 1 || bellHour === k.getUTCHours()) return;
-  if (document.hidden) return;   // 안 보이는 창에서는 소리가 막혀요. 돌아오면 그때 울려요
-  bellHour = k.getUTCHours();
-  if (S.mode !== 'world' || !sound.on) return;
-  bigBell();
-  toast(`${bellHour % 12 || 12}시, 범종이 울려요`);
-}
-// 캠핑장에는 정각 범종이 없어요
-
 // ───────── 내 캐릭터 ─────────
 function makeMe() {
   if (S.me) { players.remove(S.me.group); S.me.dispose(); }
   S.me = new Avatar(S.profile.look, S.profile.name, { mine: true });
-  S.me.onBow = (n) => {
-    $('#bae-counter').innerHTML = `<small>108배</small><b>${n}</b><small>/ 108</small>`;
-    if (n > 0) addRecord('bows', 1);
-    if (n >= 108) { bowl(); toast('108배를 모두 마쳤어요'); setTimeout(() => ($('#bae-counter').hidden = true), 2500); }
-  };
   players.add(S.me.group);
 }
 
@@ -327,11 +232,10 @@ async function goScene(which, { instant = false } = {}) {
   S.scene = which;
   const world = worldFor(S.loc.id, which);
   setWorld(world);
-  if (which === 'in') { rebuildLanterns(); loadBuddha(world); }
   S.me.dress(which);
   const me = S.me.group;
   if (which === 'out' && world.door) {
-    // 건물에서 나오면 법당 문 앞에, 바깥을 바라보고 선다
+    // 문이 있는 곳이면 문 앞에, 바깥을 바라보고 선다
     me.position.copy(world.door).add(new THREE.Vector3(0, 0, 2.6));
     me.rotation.y = from === 'in' || from === 'meal' || from === 'room' ? 0 : world.spawnRot;
   } else {
@@ -343,7 +247,7 @@ async function goScene(which, { instant = false } = {}) {
   placeCameraBehind(world.camDist || 5);
   if (which === 'room') {
     sitOn(world.seats[0], { auto: true });
-    // 책상 건너편 위에서 내려다보게: 책상이 캐릭터를 가리지 않고 손(책·사경·찻잔)과 얼굴이 함께 보여요.
+    // 책상 건너편 위에서 내려다보게: 책상이 캐릭터를 가리지 않고 손(책·컵)과 얼굴이 함께 보여요.
     // 세로로 긴 휴대폰은 옆이 좁아서 그만큼 뒤로 물러나 가운데에 오게
     const back = Math.min(1.7, Math.max(1, 0.85 / (innerWidth / innerHeight)));
     controls.target.set(0, 0.72, -0.75);
@@ -351,10 +255,8 @@ async function goScene(which, { instant = false } = {}) {
     controls.update();
   }
   S.me.tag.visible = which !== 'room';
-  S.me.propLift = which === 'room' ? 0.07 : 0;   // 내 방: 책·사경 종이가 책상 위에
+  S.me.propLift = which === 'room' ? 0.07 : 0;   // 내 자리: 손에 든 책이 조금 위로
   renderActions();   // 장소마다 동작 줄이 달라요
-  // 내 방 족자는 들어올 때마다 문구가 바뀐다
-  stopScrolls();   // 캠핑장에는 족자가 없어요
   refreshRemoteVisibility();
   updateHud();
   pushState(true);
@@ -365,7 +267,7 @@ function placeCameraBehind(dist) {
   const me = S.me.group;
   const back = new THREE.Vector3(Math.sin(me.rotation.y), 0, Math.cos(me.rotation.y)).multiplyScalar(-dist);
   // 아이패드 세로처럼 큰 세로 화면은 하늘이 반이라, 시선을 조금 내려 마당·사람이 크게 보이게
-  // (시선이 높은 마당만 많이 내리고, 법당처럼 원래 낮은 곳은 조금만)
+  // (시선이 높은 마당만 많이 내리고, 실내처럼 원래 낮은 곳은 조금만)
   const lookY = S.active.camLookY ?? 1.1;
   const tilt = innerWidth < innerHeight && innerWidth >= 600 ? Math.min(1.3, Math.max(0, lookY - 1.5)) : 0;
   controls.target.copy(me.position).add(new THREE.Vector3(0, lookY - tilt, 0));
@@ -420,7 +322,7 @@ function removeRemote(peer, announce) {
   players.remove(r.av.group);
   r.av.dispose();
   S.remotes.delete(peer);
-  if (announce && S.mode === 'world') toast(`${r.st.n}님이 법당을 나섰어요`);
+  if (announce && S.mode === 'world') toast(`${r.st.n}님이 캠핑장을 떠났어요`);
   updateHud();
 }
 
@@ -546,11 +448,8 @@ const ICONS = {
   keunjeol: '<circle cx="6" cy="15" r="2.2"/><path d="M8 16h9c2 0 3 1 3 3H6z"/>',
   beads: '<circle cx="12" cy="12" r="6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="1.5 2.2"/><circle cx="12" cy="19.5" r="1.6"/>',
   jukbi: '<path d="M5 19L17 5l2 2L7 21z"/>',
-  stones: '<ellipse cx="12" cy="19" rx="7" ry="2.5"/><ellipse cx="12" cy="14.5" rx="5" ry="2"/><ellipse cx="12" cy="10.5" rx="3.5" ry="1.7"/><ellipse cx="12" cy="7" rx="2.2" ry="1.3"/>',
-  moktak: '<ellipse cx="11" cy="14" rx="7" ry="5"/><path d="M14 4l6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
   meditate: '<path d="M12 6c2 2 3 5 0 9-3-4-2-7 0-9zM4 12c3 0 6 2 8 5-4 1-7-1-8-5zM20 12c-3 0-6 2-8 5 4 1 7-1 8-5z"/>',
   wave: '<path d="M8 21v-7l-2-3 1-1 3 3V5a1 1 0 012 0v6h1V4a1 1 0 012 0v7h1V6a1 1 0 012 0v9c0 3-2 6-5 6z"/>',
-  bae108: '<text x="12" y="16" text-anchor="middle" font-size="9" font-weight="700" fill="currentColor">108</text>',
 };
 
 // 아래 동작 줄: 장소마다 다른 다섯 가지 (js/data.js 의 SCENE_ACTIONS)
@@ -566,23 +465,14 @@ function renderActions() {
 let spotArrived = null;
 const MOVING_ACTS = new Set(['bugs', 'bubbles', 'kite', 'bike', 'kayak', 'stepstones', 'wavedodge', 'shells']);   // 움직이며 하는 동작
 function doAction(id) {
-  // 산보 · 탑돌이: 길을 따라 걷는 동작이라 따로 (다시 누르면 멈춤)
-  if (id === 'walk' || id === 'tapdori') {
+  // 산책: 길을 따라 걷는 동작이라 따로 (다시 누르면 멈춤)
+  if (id === 'walk') {
     const on = S.walking && S.walkMode === id;
     stopWalk();
     S.target = null;
-    if (!on) { startSfx(id); id === 'walk' ? startSanbo() : startTapdori(); }
+    if (!on) { startSfx(id); startSanbo(); }
     net.sendAct({ a: id, on: !on });
     syncActionButtons();
-    return;
-  }
-  const stonesWasOn = !!S.stones;
-  stopWalk();
-  if (id === 'stones') {
-    const on = !stonesWasOn;
-    S.target = null; stopStones(); S.me.stop();
-    if (on) startStones();
-    net.sendAct({ a: id, on }); pushState(true); syncActionButtons();
     return;
   }
   // 캠핑장: 그 동작을 하는 자리(개수대 · 버너 · 장작더미 · 물가 · 이불 …)까지 걸어가서 시작해요
@@ -604,12 +494,7 @@ function doAction(id) {
       return;
     }
   }
-  // 내 방에서 절은 책상에서 물러나 절하는 방석 위에서 (책상에 머리를 박지 않게)
-  if (S.scene === 'room' && ['bae108', 'keunjeol', 'banbae'].includes(id) && S.active.bowSpot) {
-    S.seat = null; S.me.seated = false;
-    S.me.group.position.copy(S.active.bowSpot); S.me.group.rotation.y = Math.PI;
-  }
-  // 방석에 앉아서 하는 동작(발우공양 · 발우 씻기 · 책 읽기 · 사경)은 서 있으면 먼저 빈 방석에 앉는다
+  // 앉아서 하는 동작(라면 먹기 · 책 읽기 · 낚시)은 서 있으면 먼저 빈자리에 앉는다
   if (ACTIONS.find((a) => a.id === id)?.seat && S.seat == null && S.active.seats?.length && S.me.action !== id) {
     const seat = S.scene === 'room' ? S.active.seats[0] : freeSeat(S.active.seats, false);
     if (!sitOn(seat, { auto: true })) return;
@@ -634,15 +519,12 @@ function doAction(id) {
   }   // 내 자리: 눕거나 자리를 옮겨도 카메라가 나를 다시 비추게
   if (on && id === 'stargaze' && dayNow() > 0.5) toast('별은 해가 진 뒤에 잘 보여요. 낮에는 구름 구경!');
   if (on && id === 'fireworks') { launchFirework(scene, S.me.group.position); addRecord('fireworks', 1); }
-  if (on && (id === 'keunjeol' || id === 'banbae')) { bowl(0.4); addRecord('bows', 1); }
-  $('#bae-counter').hidden = !(on && id === 'bae108');
-  if (on && id === 'bae108') S.me.onBow(0);
   net.sendAct({ a: id, on });
   pushState(true);
   syncActionButtons();
 }
 
-// 시간표가 시키는 반복 동작 (발우공양, 독서, 명상)
+// 저절로 이어지는 반복 동작 (라면 먹기 · 책 읽기)
 function startLoop(id) {
   S.me.action = id;
   S.me.actionT = 0;
@@ -651,50 +533,36 @@ function startLoop(id) {
 }
 
 function syncActionButtons() {
-  const on = (id) => id === 'walk' ? (S.walking && S.walkMode === 'walk') || walkStarting : id === 'tapdori' ? S.walking && S.walkMode === 'tapdori' : id === 'stones' ? !!S.stones : S.me?.action === id;
+  const on = (id) => id === 'walk' ? (S.walking && S.walkMode === 'walk') || walkStarting : S.me?.action === id;
   document.querySelectorAll('.act').forEach((b) => b.setAttribute('aria-pressed', String(on(b.dataset.act))));
   const sanbo = on('walk');
   $('#btn-sanbo').setAttribute('aria-pressed', String(sanbo));
   $('#btn-sanbo .lbl').textContent = sanbo ? '산보 멈추기' : '산보하기';
-  if (S.me?.action !== 'bae108') $('#bae-counter').hidden = true;
+  if (!CATCH[S.me?.action]) { $('#bae-counter').hidden = true; catchMsg = ''; }   // 위쪽 안내 칸은 잡기 · 요리할 때만
 }
 
-let walkStarting = false;   // 산보: 합장하고 걷기 시작하기 전 1.8초
-// 직접 움직이면(장소 옮기기 · 앉기 · 일어서기 · 동작) 하던 산보 · 탑돌이를 멈춘다
+let walkStarting = false;
+// 직접 움직이면(장소 옮기기 · 앉기 · 일어서기 · 동작) 하던 산책을 멈춘다
 function stopWalk() {
-  if (S.walkMode === 'tapdori' && S.me?.action === 'tapdori') S.me.stop();
-  stopStones();
   S.walking = false;
   S.walkMode = null;
   walkStarting = false;
 }
 
-// 산보는 삼보일배처럼: 세 걸음 걷고 한 번 합장, 이것을 되풀이하며 마당을 돈다
-const WALK_STEP = 0.75;
-let walkDist = 0, walkBowT = 0;
-// 산보 시작: 먼저 합장하고 1.8초 뒤 걷기 시작 (그 사이 다시 누르면 취소)
+// 산책: 장소마다 정해진 둘레길을 따라 걸어요
+let walkDist = 0;
+// 산책 시작
 async function startSanbo() {
   if (!S.active.walkPath) return;   // 마당 · 물가 둘레길
   standUp(true);
   startWalk();   // 캠핑장 산책: 바로 걷기
 }
 
-// 탑돌이: 합장한 채로 탑을 오른쪽에 두고(시계 방향) 둥글게 돈다
-function startTapdori() {
-  const c = S.active.pagodaSlot?.position;
-  if (!c) return;
-  const path = Array.from({ length: 20 }, (_, k) => { const a = (-2 * Math.PI * k) / 20; return new THREE.Vector3(c.x + 3 * Math.sin(a), 0, c.z + 3 * Math.cos(a)); });
-  startWalk(path, 'tapdori');
-  S.me.action = 'tapdori';
-  S.me.actionT = 0;
-  pushState(true);
-}
 
 function startWalk(path = S.active.walkPath, mode = 'walk') {
   if (!path) return;
   standUp(true);
   walkDist = 0;
-  walkBowT = 0;
   const p = S.me.group.position;
   let i = 0, best = Infinity;
   path.forEach((w, k) => { const d = w.distanceTo(p); if (d < best) { best = d; i = k; } });
@@ -707,75 +575,6 @@ function startWalk(path = S.active.walkPath, mode = 'walk') {
   go(i);
 }
 
-// ───────── 염주 · 목탁 세기 ─────────
-// 염주: 108알을 1초에 한 알씩 (한 바퀴 108초). 목탁: 치는 횟수 (위쪽 108배 칸을 같이 써요)
-const MALA_N = 108;
-let malaShown = -1, moktakShown = -1;
-function buildMala() {
-  if ($('#mala-ring').childElementCount) return;
-  let h = '';
-  for (let i = 0; i < MALA_N; i++) { const a = (i / MALA_N) * Math.PI * 2 + Math.PI / 2; h += `<circle class="b" cx="${(Math.cos(a) * 92).toFixed(2)}" cy="${(Math.sin(a) * 92).toFixed(2)}" r="3.6"/>`; }
-  $('#mala-ring').innerHTML = h + '<circle class="mo" cx="0" cy="102" r="6"/>';   // 모주(어미 알)는 아래
-}
-function updateCounters() {
-  const act = S.me?.action;
-  if (act === 'beads') {
-    const total = Math.floor(S.me.actionT), n = total % MALA_N, round = Math.floor(total / MALA_N);
-    if (total !== malaShown) {
-      buildMala(); $('#mala').hidden = false;
-      const beads = $('#mala-ring').querySelectorAll('circle.b');
-      beads.forEach((b, i) => b.setAttribute('class', `b${i < n ? ' done' : ''}${i === n ? ' now' : ''}`));
-      // 지금 알이 늘 아래(엄지 자리)에 오도록 염주를 돌려요
-      $('#mala-ring').style.transform = `rotate(${-(n / MALA_N) * 360}deg)`;
-      $('#mala-count').textContent = n;
-      $('#mala-round').textContent = round ? `${round}바퀴 돌았어요` : '';
-      if (total > 0 && n === 0) { bowl(0.5); toast(`염주 한 바퀴 (108알)를 돌렸어요`); addRecord('beads', 1); }
-      malaShown = total;
-    }
-  } else if (malaShown !== -1) { $('#mala').hidden = true; malaShown = -1; }
-  if (act === 'moktak') {
-    const n = Math.max(0, Math.floor(S.me.actionT * 1.1 + 0.25) - 1);
-    if (n !== moktakShown) { $('#bae-counter').innerHTML = `<small>목탁</small><b>${n}</b><small>번</small>`; $('#bae-counter').hidden = false; moktakShown = n; }
-  } else if (moktakShown !== -1) { if (act !== 'bae108') $('#bae-counter').hidden = true; moktakShown = -1; }
-}
-
-// ───────── 돌탑 쌓기 ─────────
-// 돌 세 개를 쌓으면 그 탑은 그 자리에 남기고, 옆으로 몇 걸음 옮겨 가서 또 쌓아요 (마당 끝에 닿으면 반대쪽으로)
-const cairns = [];
-function startStones() {
-  standUp(true);
-  S.stones = { dir: 1 };
-  S.me.play('stones');
-}
-function stopStones() { S.stones = null; }
-function stepStones() {
-  const me = S.me;
-  if (me.action === 'stones' && me.actionT >= 7.4) {
-    // 다 쌓은 탑을 그 자리에 내려놓고
-    me.cairn.updateWorldMatrix(true, true);
-    const c = new THREE.Group();
-    me.cairn.children.slice(0, 3).forEach((st) => { const m = st.clone(); m.visible = true; c.add(m); });
-    me.cairn.matrixWorld.decompose(c.position, c.quaternion, c.scale);
-    S.active.group.add(c); cairns.push(c);
-    if (cairns.length > 9) cairns.shift().removeFromParent();
-    me.stop();
-    // 오른쪽으로 1.6칸 옮겨 가요. 마당 끝이면 방향을 바꿔요
-    const g = me.group, right = new THREE.Vector3(-Math.cos(g.rotation.y), 0, Math.sin(g.rotation.y));
-    let to = g.position.clone().addScaledVector(right, 1.6 * S.stones.dir);
-    if (S.active.radius && Math.hypot(to.x, to.z) > S.active.radius - 1) { S.stones.dir *= -1; to = g.position.clone().addScaledVector(right, 1.6 * S.stones.dir); }
-    const face = g.rotation.y;
-    S.target = { pos: to, speed: 1.2, face, onArrive: () => { if (S.stones) { me.play('stones'); pushState(true); syncActionButtons(); } } };
-    pushState(true);
-  } else if (!me.action && !S.target) {
-    // 길이 막혀 멈췄으면 그 자리에서 다시 쌓아요
-    me.play('stones'); pushState(true);
-  }
-}
-
-// ───────── 도감 · 잡기 ─────────
-// 낚시는 챔질할 때(7초마다) 반쯤, 곤충은 휘두를 때(약 2초마다) 셋 중 하나, 요리는 8초 · 고기는 10초마다 한 접시
-// 잡기 · 요리: 한 번에 period 초. 앞부분은 찾는 중, 마지막 3초는 '앗, 저기!', 끝나면 잡았거나 놓쳤거나.
-// 곤충 잡기는 잠자리채를 들고 둘레를 천천히 돌아다녀요
 const CATCH = {
   fish: { period: 14, chance: 0.5, kind: 'fish', label: '낚시', find: '입질을 기다리고 있어요…', near: '찌가 움직여요!', miss: '아깝다, 놓쳤어요' },
   bugs: { period: 12, chance: 0.45, kind: 'bug', label: '곤충 잡기', find: '곤충을 찾고 있어요…', near: '앗, 저기 있다!', miss: '놓쳤어요… 다시 찾아볼게요' },
@@ -1079,97 +878,6 @@ setInterval(() => {
   store.set(key, store.get(key, 0) + 10);
 }, 10000);
 
-// ───────── 소원과 연등 ─────────
-// 마지막 호박색은 할로윈 때만 고를 수 있어요 (지난 호박 연등도 그대로 보이게 목록에는 늘 둬요)
-const LANTERN_COLORS = ['#f08aa0', '#f2c45a', '#f6f2e8', '#9ad0a8', '#9cc0f0', '#f2a05a', '#e8873a'];
-const LANTERN_NAMES = ['분홍', '노랑', '하양', '연두', '하늘', '주황', '할로윈 호박'];
-const AMOUNTS = [{ v: 0, t: '마음만' }, { v: 1000, t: '1,000원' }, { v: 3000, t: '3,000원' }, { v: 10000, t: '10,000원' }];
-let wishColor = LANTERN_COLORS[0], wishAmount = 0;
-
-// 소원 글은 비공개: 서버와 다른 분에게는 연등(색·법명)만 가고, 글은 이 기기의 '내가 올린 소원'에만 남는다
-function addWish(w, { animate = false, announce = false } = {}) {
-  if (!w || !w.id || S.wishes.some((x) => x.id === w.id)) return;
-  const mine = store.get('mywishes', []).find((x) => x.id === w.id);
-  S.wishes.push({ id: String(w.id), n: String(w.n).slice(0, 12), t: mine ? String(mine.t).slice(0, 80) : '', c: LANTERN_COLORS.includes(w.c) ? w.c : LANTERN_COLORS[0], v: w.v | 0, mine: !!mine });
-  if (S.wishes.length > 60) S.wishes.shift();
-  if (announce && S.mode === 'world') toast(`${w.n}님이 복전함에 소원을 올렸어요`);
-  const world = S.worlds[S.loc?.id]?.in;
-  if (world) hangLantern(world, S.wishes[S.wishes.length - 1], animate);
-}
-
-function hangLantern(world, w, animate) {
-  if (S.lanterns.has(w.id)) return;
-  const slots = world.lanternSlots;
-  let i = [...w.id].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) >>> 0, 7) % slots.length;
-  const used = new Set([...S.lanterns.values()].map((l) => l.userData.slot));
-  for (let k = 0; k < slots.length && used.has(i); k++) i = (i + 1) % slots.length;
-  const l = buildLantern(w.c, 1.2);
-  l.userData = { slot: i, wish: w };
-  l.traverse((o) => (o.userData.wish = w));
-  const dest = slots[i].clone().add(new THREE.Vector3(0, -0.35, 0.4));
-  if (animate) { l.position.set(0, 1.4, -8.4); l.userData.rise = { from: l.position.clone(), to: dest, t: 0 }; }
-  else l.position.copy(dest);
-  world.lanternRoot.add(l);
-  S.lanterns.set(w.id, l);
-}
-
-function rebuildLanterns() {
-  const world = S.worlds[S.loc.id].in;
-  for (const l of S.lanterns.values()) l.parent?.remove(l);
-  S.lanterns.clear();
-  for (const w of S.wishes) hangLantern(world, w, false);
-}
-
-function openWish() {
-  if (S.scene !== 'in') return;
-  stopWalk();
-  const spot = new THREE.Vector3(0, 0, -7.1);
-  if (S.me.group.position.distanceTo(spot) > 1.2) {
-    standUp();
-    S.target = { pos: spot, face: Math.PI, onArrive: () => { $('#wish-modal').hidden = false; $('#wish-text').focus(); } };
-    return;
-  }
-  $('#wish-modal').hidden = false;
-  $('#wish-text').focus();
-}
-
-const flyers = [];
-function submitWish(e) {
-  e.preventDefault();
-  const text = $('#wish-text').value.trim();
-  if (!text) return;
-  // 연등은 1분에 하나 (서버도 같은 규칙으로 막아요)
-  const wait = Math.ceil((store.get('lastWishAt', 0) + 60e3 - Date.now()) / 1000);
-  if (wait > 0) { toast(`연등은 1분에 하나씩 올릴 수 있어요. ${wait}초 뒤에 올려 주세요`); return; }
-  store.set('lastWishAt', Date.now());
-  $('#wish-modal').hidden = true;
-  $('#wish-text').value = '';
-  const w = { id: `${net.selfId || 'local'}-${Date.now().toString(36)}`, n: S.profile.name, t: text, c: wishColor, v: wishAmount };
-  const paper = new THREE.Mesh(new THREE.PlaneGeometry(0.22, 0.32), new THREE.MeshStandardMaterial({ color: '#fbf3dc', side: THREE.DoubleSide }));
-  const start = S.me.group.position.clone().add(new THREE.Vector3(0, 1.0, -0.3));
-  paper.position.copy(start);
-  S.active.group.add(paper);
-  flyers.push({ obj: paper, from: start, to: new THREE.Vector3(0, 1.25, -8.4), t: 0, dur: 0.9, done: () => {
-    paper.removeFromParent();
-    coin();
-    const mine = store.get('mywishes', []);
-    mine.unshift({ ...w, place: S.loc.name, at: Date.now() });
-    store.set('mywishes', mine.slice(0, 100));
-    addWish(w, { animate: true });
-    net.sendWish(publicWish(w));
-    addRecord('wishes', 1);
-    toast(wishAmount ? `소원과 함께 ${AMOUNTS.find((a) => a.v === wishAmount).t}을 마음으로 시주했어요` : '소원이 연등이 되어 걸렸어요');
-  } });
-  S.me.play('hapjang');
-  pushState(true);
-}
-
-function renderWishForm() {
-  $('#wish-colors').innerHTML = LANTERN_COLORS.map((c, i) => (i === 6 && season() !== 'halloween') ? '' : `<button type="button" class="swatch" style="background:${c}" data-c="${c}" aria-pressed="${c === wishColor}" aria-label="${LANTERN_NAMES[i]} 연등" title="${LANTERN_NAMES[i]} 연등"></button>`).join('');
-  $('#wish-amounts').innerHTML = AMOUNTS.map((a) => `<button type="button" class="chip" data-v="${a.v}" aria-pressed="${a.v === wishAmount}"><span class="lbl">${a.t}</span><small class="cap">${a.v ? '가상 금액 · 실제 결제 없음' : '시주 없이 소원만'}</small></button>`).join('');
-}
-
-// ───────── 알림 ─────────
 function toast(text) {
   const el = document.createElement('div');
   el.className = 'toast';
@@ -1201,7 +909,7 @@ function toggleOnline(open = $('#online-list').hidden) {
 
 function updateHud() {
   if (!S.loc || S.mode !== 'world') return;
-  $('#hud-place').textContent = `큰법당 · ${S.loc.name}`;
+  $('#hud-place').textContent = `캠핑장 · ${S.loc.name}`;
   $('#design-name').textContent = S.loc.name;
   $('#hud-server').textContent = S.server ? `· 서버 ${S.server}` : '· 서버 찾는 중';
   const here = S.scene === 'room' ? 1 : [...S.remotes.values()].filter((r) => r.st.s === S.scene).length + 1;
@@ -1210,8 +918,7 @@ function updateHud() {
   $('#online-n').textContent = S.remotes.size + 1;
   $('#online-pill').title = `눌러서 서버 ${S.server || '-'}에 함께 접속한 분 보기`;
   if (!$('#online-list').hidden) renderOnline();
-  // 오른쪽 상황 단추는 장소마다 두 개: 법당 [내 방으로][일어서기] · 마당 [법당으로][산보하기]
-  // 공양간 [법당으로][일어서기] · 내 방 [법당으로][족자 고르기]
+  // 오른쪽 상황 단추 (장소 이동 단추는 숨겨 두고 왼쪽 위 장소 줄로 옮겨요)
   $('#btn-go .lbl').textContent = S.scene === 'in' ? '내 자리로' : '캠프 마당으로';
   $('#btn-yard').hidden = S.scene !== 'room';
   $('#btn-stand').hidden = S.seat == null || !['in', 'meal'].includes(S.scene);
@@ -1223,7 +930,6 @@ function updateHud() {
 function updateContext() {
   if (S.mode !== 'world' || !S.active) return;
   const p = S.me.group.position;
-  $('#btn-wish').hidden = !(S.scene === 'in' && p.distanceTo(new THREE.Vector3(0, 0, -8.4)) < 3.4);
 }
 
 let timerTick = 1;
@@ -1242,14 +948,14 @@ function updateTimer(dt) {
 function renderServerGrid() {
   if (!S.loc) return;
   const counts = net.counts();
-  $('#server-title').textContent = '큰법당 서버';
-  $('#server-now').textContent = S.server ? `현재 · 큰법당 서버 ${S.server}` : '서버를 찾는 중이에요';
+  $('#server-title').textContent = '캠핑장 서버';
+  $('#server-now').textContent = S.server ? `현재 · 캠핑장 서버 ${S.server}` : '서버를 찾는 중이에요';
   let html = '';
   for (let i = 1; i <= SERVER_COUNT; i++) {
     const c = counts[i] || 0;
     const cur = i === S.server, full = c >= SERVER_CAP && !cur;
     html += `<button class="server${cur ? ' current' : ''}${full ? ' full' : ''}" data-server="${i}" ${full ? 'disabled' : ''}>
-      <b>큰법당 서버 ${i}</b><span>${c} / ${SERVER_CAP}명${cur ? ' · 이용 중' : full ? ' · 만석' : ''}</span>
+      <b>캠핑장 서버 ${i}</b><span>${c} / ${SERVER_CAP}명${cur ? ' · 이용 중' : full ? ' · 만석' : ''}</span>
       <small class="cap">${cur ? '지금 머무는 서버' : full ? '자리가 없어 들어갈 수 없어요' : '눌러서 이 서버로 옮기기'}</small></button>`;
   }
   $('#server-grid').innerHTML = html;
@@ -1258,8 +964,6 @@ function renderServerGrid() {
 async function switchServer(n) {
   if (n === S.server) return;
   S.server = n;
-  S.wishes = [];
-  if (S.worlds[S.loc.id]?.in) rebuildLanterns();
   updateHud();
   await net.joinServer(n);
   pushState(true);
@@ -1321,10 +1025,10 @@ function showLoading(locId) {
   if (S.me) S.me.group.visible = false;
 }
 
-// ───────── 법당 위치 들어가기 ─────────
+// ───────── 디자인(텐트 · 캠핑카 · 카바나) 들어가기 ─────────
 async function enterLocation(locId) {
   // 다른 동네로 가면 하던 동작 · 산보는 멈춰요
-  if (S.me) { stopWalk(); S.stones = null; if (S.me.action) { S.me.stop(); syncActionButtons(); } }
+  if (S.me) { stopWalk(); if (S.me.action) { S.me.stop(); syncActionButtons(); } }
   S.loc = LOCATIONS.find((l) => l.id === locId) || LOCATIONS[0];
   document.body.dataset.site = S.loc.id;   // 단추 색이 디자인을 따라가요
   showLoading(S.loc.id);
@@ -1336,9 +1040,8 @@ async function enterLocation(locId) {
   await sleep(30);
   const hall = worldFor(S.loc.id, 'in');
   setLoad(45);
-  // 서버는 디자인과 상관없이 모두 '큰법당 서버 1~12' 하나로 모인다
+  // 서버는 디자인과 상관없이 모두 '캠핑장 서버 1~12' 하나로 모인다
   const netReady = net.joinLobby('hall', true);
-  await Promise.race([loadBuddha(hall), sleep(8000)]);
   setLoad(75);
   await sleep(30);
   worldFor(S.loc.id, 'meal');
@@ -1352,8 +1055,6 @@ async function enterLocation(locId) {
   S.enteredAt = Date.now();
   S.mode = 'world';
   S.server = 0;
-  S.wishes = [];
-  S.lanterns.clear();
   makeMe();
   $('#loading').hidden = true;
   await goScene('in', { instant: true });
@@ -1376,7 +1077,6 @@ async function changeDesign(locId) {
   await fade(true);
   S.loc = LOCATIONS.find((l) => l.id === locId) || LOCATIONS[0];
   store.set('lastLoc', S.loc.id);
-  S.lanterns.clear();
   // 배경만 바꾸고 나는 그 자리 그대로: 서 있던 곳 · 앉은 방석 · 카메라를 기억했다가 되돌린다 (하던 동작도 그대로)
   const g = S.me.group, seat = S.seat;
   const keep = { pos: g.position.clone(), rot: g.rotation.y, cam: camera.position.clone(), at: controls.target.clone() };
@@ -1405,7 +1105,7 @@ function showPlaces() {
     const cur = S.loc?.id === l.id;
     const art = `background:linear-gradient(to top, ${GROUND[l.id] || '#8f8878'} 0 32%, transparent 32%), linear-gradient(${l.sky[0]}, ${l.sky[1]})`;
     return `<button class="place${cur ? ' current' : ''}" data-place="${l.id}" aria-pressed="${cur}"><span class="place-art" style="${art}"></span><b>${l.name}</b><small>${l.place}</small></button>`;
-  }).join('') + '<p class="fine credit">불상 자료 · 국가유산청 금동보살좌상(판불), 국립중앙박물관 3D 데이터 5점(덕수2116·덕수3310·본관5191·M번435·본관14752), 공공누리 제1유형</p>';
+  }).join('');
 }
 
 // ───────── 캐릭터 꾸미기 ─────────
@@ -1470,7 +1170,7 @@ function finishCreator() {
   S.me.setLook(S.profile.look, S.scene);
   S.me.setName(S.profile.name);
   pushState(true);
-  toast(S.scene === 'in' ? '새 모습으로 바꿨어요. 법당 안에서는 회색 승복을 입어요' : '새 모습으로 바꿨어요');
+  toast('새 모습으로 바꿨어요');
 }
 
 // ───────── 입력 ─────────
@@ -1494,7 +1194,7 @@ function moveJoy(e) {
   knob.style.transform = `translate(${x * 35}px, ${y * 35}px)`;
 }
 
-// 화면 탭: 방석·자리 → 바로 앉기, 복전함 → 소원, 연등 → 소원 읽기, 바닥 → 걸어가기
+// 화면 탭: 의자 · 자리 → 걸어가서 앉기, 바닥 → 걸어가기
 const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
 let downAt = null;
 canvas.addEventListener('pointerdown', (e) => { downAt = { x: e.clientX, y: e.clientY }; });
@@ -1508,17 +1208,12 @@ canvas.addEventListener('pointerup', (e) => {
   const w = S.active;
   for (const h of ray.intersectObjects(w.group.children, true)) {
     const o = h.object;
-    if (o.userData.wish) { const wi = o.userData.wish; toast(wi.mine && wi.t ? `“${wi.t}” · 내 연등` : `${wi.n}님의 연등이에요`); return; }
     if (o.userData.seats) {
       let seat = w.seats[o.userData.seats === 'room' ? 0 : h.instanceId];
       if (o.userData.seats === 'chair') { let p = o; while (p && p.userData.seatId === undefined) p = p.parent; seat = w.seats.find((x) => x.mesh === p) || w.seats[p?.userData.seatId]; }
       if (seat) walkToSeat(seat);
       return;
     }
-    if (o.userData.donation) return openWish();
-    // 불상을 누르면 (휴대폰) ‹ › 버튼이 4초 동안 나온다
-    // 불상이나 탑을 누르면 불상·탑 고르기 창
-    for (const slot of [w.buddhaSlot, w.pagodaSlot]) if (slot) { let p = o; while (p && p !== slot) p = p.parent; if (p) return openRelics(); }
     if (o === w.floor) {
       // 의자 바로 옆 바닥을 눌러도 그 의자에 앉아요 (의자 다리가 가늘어서 바닥이 먼저 눌릴 때가 많아요)
       const near = w.seats?.filter((x) => x.mesh).map((x) => [x, Math.hypot(x.pos.x - h.point.x, x.pos.z - h.point.z)]).sort((a, b) => a[1] - b[1])[0];
@@ -1543,7 +1238,7 @@ canvas.addEventListener('pointerup', (e) => {
 const tmpV = new THREE.Vector3();
 const SPEED = 2.7;        // 걷는 속도
 const SEAT_SPEED = 1.8;   // 자리로 걸어갈 때는 더 천천히
-const RUN_SPEED = 5.4;    // 뛰는 속도: 마당과 내 방에서만 (법당·공양간에서는 걷는다)
+const RUN_SPEED = 5.4;    // 뛰는 속도
 const canRun = () => S.scene === 'out' || S.scene === 'room';
 
 // 점프: 스페이스 (휴대폰은 오른쪽 아래 ↑ 단추). 뛰기처럼 마당과 내 방에서만
@@ -1581,10 +1276,6 @@ function moveMe(dt) {
     if (dir.length() > 1) dir.normalize();
     // Shift 를 누르거나 조이스틱을 끝까지 밀면 뛴다
     if (canRun() && (keys.has('ShiftLeft') || keys.has('ShiftRight') || Math.hypot(joy.x, joy.y) > 0.92)) speed = RUN_SPEED;
-  } else if (S.walking && walkBowT > 0) {
-    // 산보 · 탑돌이: 세 걸음마다 멈춰 서서 반배하는 동안은 걷지 않는다. 탑돌이는 절을 마치면 다시 합장한 채로
-    walkBowT -= dt;
-    if (walkBowT <= 0 && S.walkMode === 'tapdori') { S.me.action = 'tapdori'; S.me.actionT = 1; pushState(true); }
   } else if (S.target) {
     tmpV.copy(S.target.pos).sub(g.position).setY(0);
     if (tmpV.length() < 0.18) {
@@ -1593,7 +1284,7 @@ function moveMe(dt) {
       t.onArrive?.();
     } else { dir = tmpV.normalize(); speed = S.target.run && canRun() ? RUN_SPEED : S.target.speed || SPEED; }
   }
-  if (dir && S.me.action && S.me.action !== 'meditate' && !(S.walking && S.me.action === 'tapdori') && !MOVING_ACTS.has(S.me.action)) { S.me.stop(); pushState(true); if (!S.stones) syncActionButtons(); }   // 다른 사람 화면에서도 바로 멈추게
+  if (dir && S.me.action && !MOVING_ACTS.has(S.me.action)) { S.me.stop(); pushState(true); syncActionButtons(); }   // 다른 사람 화면에서도 바로 멈추게
   const before = g.position.clone();
   if (dir) {
     g.position.addScaledVector(dir, speed * dt);
@@ -1608,20 +1299,6 @@ function moveMe(dt) {
     }
   }
   me.speed = dir ? g.position.distanceTo(before) / Math.max(dt, 1e-4) : 0;
-  // 산보: 세 걸음(한 걸음 약 0.75칸) 걸을 때마다 한 번 합장
-  if (S.walking && S.walkMode === 'tapdori' && dir) {   // 캠핑장 산책은 절 없이 걷기만
-    walkDist += g.position.distanceTo(before);
-    if (walkDist >= WALK_STEP * 3) {
-      // 세 걸음 걷고 한 번 반배 (합장하고 허리 숙이기). 걷던 속도를 0으로 해야 절이 바로 취소되지 않는다
-      walkDist = 0;
-      walkBowT = 2.7;
-      me.speed = 0;
-      S.me.action = 'banbae';
-      S.me.actionT = 0;
-      addRecord('bows', 1);
-      pushState(true);
-    }
-  }
   const delta = g.position.clone().sub(before).setY(0);
   camera.position.add(delta);
   controls.target.add(delta);
@@ -1684,8 +1361,6 @@ function loop() {
     // 낮잠 이불: 낮잠을 자는 동안만 스르르 펴지고, 일어나면 개어요
     for (const [act, bed] of Object.entries(S.active?.beddings || {})) { const want = S.me.action === act ? 1 : 0.01; bed.scale.z += (want - bed.scale.z) * Math.min(1, dt * 5); bed.visible = bed.scale.z > 0.05; }
     stepPlay(dt);
-    updateCounters();
-    if (S.stones) stepStones();
     if (!S.me.action && document.querySelector('.act[aria-pressed="true"]')) syncActionButtons();
     soundFor(S.me, 1);
     // 이름표: 내 캐릭터까지 거리보다 먼 사람은 거리만큼 키워(최대 2배) 내 이름표보다 작아지지 않게, 화면이 낮으면 모두 조금 크게
@@ -1728,24 +1403,6 @@ function loop() {
     updateTimer(dt);
     S.active.update?.(elapsed);
     if (S.active.flames) for (const f of S.active.flames) f.scale.set(1, 1.8 + Math.sin(elapsed * 13 + f.id) * 0.25, 1);
-    for (const l of S.lanterns.values()) {
-      const rise = l.userData.rise;
-      if (rise) {
-        rise.t += dt / 2.6;
-        const s = Math.min(1, rise.t), e = s * s * (3 - 2 * s);
-        l.position.lerpVectors(rise.from, rise.to, e);
-        if (s >= 1) delete l.userData.rise;
-      } else l.rotation.y += dt * 0.15;
-    }
-    for (let i = flyers.length - 1; i >= 0; i--) {
-      const f = flyers[i];
-      f.t += dt / f.dur;
-      const s = Math.min(1, f.t);
-      f.obj.position.lerpVectors(f.from, f.to, s);
-      f.obj.position.y += Math.sin(s * Math.PI) * 0.8;
-      f.obj.rotation.y += dt * 8;
-      if (s >= 1) { flyers.splice(i, 1); f.done(); }
-    }
   } else if (S.mode === 'gallery') {
     for (const av of galleryAvatars) av.update(dt, ACTIONS);
   }
@@ -1801,9 +1458,7 @@ document.addEventListener('click', (e) => {
   if (t.dataset.server) { $('#server-modal').hidden = true; return switchServer(+t.dataset.server); }
   const pick = ['body', 'type', 'skin', 'outfit', 'acc', 'gender', 'pet'].find((k) => t.dataset[k] != null);
   if (pick && t.closest('#creator')) { draft.look[pick] = t.dataset[pick]; renderCreatorOptions(); preview.avatar.setLook(draft.look, 'out'); return; }
-  if (t.dataset.c) { wishColor = t.dataset.c; return renderWishForm(); }
   if (t.dataset.music != null) return pickMusic(t.dataset.music);
-  if (t.dataset.v != null && t.closest('#wish-amounts')) { wishAmount = +t.dataset.v; return renderWishForm(); }
   if (t.dataset.menu) {
     $('#menu').hidden = true; document.body.classList.remove('menu-open');
     const m = t.dataset.menu;
@@ -1816,11 +1471,6 @@ document.addEventListener('click', (e) => {
     if (m === 'credit') { $('#credit-audio').innerHTML = TRACKS.filter((t) => t.by).map((t) => `<li>${t.name} · ${t.by}</li>`).join(''); $('#credit-modal').hidden = false; }
     if (m === 'music') { renderMusic(); $('#music-modal').hidden = false; }
     if (m === 'photo') startPhoto();
-    if (m === 'mywish') {
-      const list = store.get('mywishes', []);
-      $('#mywish-list').innerHTML = list.length ? list.map((w) => `<li>${escapeHtml(w.t)}<small>${escapeHtml(w.place)} · ${new Date(w.at).toLocaleString('ko-KR')}</small></li>`).join('') : '<li>아직 올린 소원이 없어요. 법당 안 복전함 앞에서 올릴 수 있어요.</li>';
-      $('#mywish-modal').hidden = false;
-    }
   }
 });
 
@@ -1882,8 +1532,7 @@ $('#btn-stand').onclick = () => { stopWalk(); standUp(); };
 $('#btn-sanbo').onclick = () => doAction('walk');   // 마당 자동 산보: 다시 누르면 멈춤
 $('#btn-go').onclick = () => { stopWalk(); goScene(S.scene === 'in' ? 'room' : 'in'); };
 $('#btn-yard').onclick = () => { stopWalk(); goScene('out'); };   // 내 자리: [캠프 마당으로] [물가로]
-// 산보: 먼저 합장하고, 마당을 오른쪽(시계 방향, 법당을 오른쪽에 두고)으로 계속 돈다. 다시 누르면 멈춘다
-$('#btn-wish').onclick = openWish;
+// 산책: 둘레길을 계속 돈다. 다시 누르면 멈춘다
 $('#design-chip').onclick = showPlaces;
 // 왼쪽 도형 단추
 // 위치 단추: 바로 옆에 디자인 이름 3개와 서버 번호만 (설명 · 그림 없이). 고르거나 다른 곳을 누르면 닫혀요
@@ -1924,7 +1573,7 @@ $('#server-chip').onclick = showPlaces;   // 위 왼쪽 칩 하나: 누르면 �
 $('#server-refresh').onclick = () => { net.refreshCounts(); renderServerGrid(); toast('인원을 새로 셌어요'); };
 $('#btn-sound').onclick = () => { setSound(!sound.on); store.set('muted', !sound.on); syncSoundBtn(); };
 
-// 법당 음악: 실제 녹음 다섯 곡 + 합성 세 곡 (끄기는 위쪽 소리 단추). 고른 곡은 이 기기에 남고, 소리를 켜야 들려요
+// 캠핑 음악: 공유마당 · Freesound 녹음 (끄기는 위쪽 소리 단추). 고른 곡은 이 기기에 남고, 소리를 켜야 들려요
 // 처음 온 분(또는 예전에 끄기·지운 곡을 골랐던 분)은 1번 싱잉볼로 시작. 소리를 끄려면 위쪽 소리 단추
 // 들어오면 먼저 들리는 곡: 6번 Sunrise (통기타). 저장 이름을 바꿔서 예전에 고른 곡 대신 한 번은 이 곡부터
 { const m = store.get('music2'); setMusic(TRACKS.some((t) => t.id === m) ? m : 'sunrise'); }
@@ -2058,11 +1707,9 @@ setInterval(() => {
 }, 10000);
 $('#welcome-char').onclick = () => { $('#welcome').hidden = true; store.set('welcomed', true); openCreator(); };
 $('#welcome-close').onclick = () => { $('#welcome').hidden = true; store.set('welcomed', true); };
-$('#wish-form').addEventListener('submit', submitWish);
 // 소리는 처음 화면을 누를 때 켠다 (브라우저 규칙)
 addEventListener('pointerdown', () => { if (!sound.on && !params.has('mute') && !store.get('muted', false)) { setSound(true); syncSoundBtn(); } }, { once: true });
 syncSoundBtn();
-renderWishForm();
 
 // ───────── 시안용 화면 (?gallery=types|men|outfits|acc|pets, ?demo=in|out|meal|room&loc=..&bots=N) ─────────
 function gallery(kind) {
@@ -2113,7 +1760,6 @@ async function demo(which) {
   renderActions();
   renderSceneBar();
   await goScene(which, { instant: true });
-  if (which === 'in') await loadBuddha(S.active);
   S.enteredAt = Date.now() - 754000;
   const n = +(params.get('bots') || 0);
   const types = CHAR_TYPES.map((t) => t.id);
@@ -2143,8 +1789,6 @@ async function demo(which) {
   document.querySelectorAll('.toast').forEach((t) => t.remove());
   if (params.get('toast')) toast(params.get('toast'));
   if (params.has('record')) openRecords();
-  if (params.has('relic')) openRelics();
-  if (params.get('act') === 'bae108') { $('#bae-counter').innerHTML = '<small>108배</small><b>12</b><small>/ 108</small>'; $('#bae-counter').hidden = false; }
   updateHud();
 }
 
@@ -2165,7 +1809,7 @@ visualViewport?.addEventListener('resize', () => {
     setTimeout(() => (viewportMeta.content = c), 50);
   }, 1000);
 });
-// 입력칸에서 나오면(법명 · 소원지 다 쓰고) 커진 화면이 있으면 되돌리기
+// 입력칸에서 나오면(이름 다 쓰고) 커진 화면이 있으면 되돌리기
 document.addEventListener('focusout', () => setTimeout(() => { if (visualViewport?.scale > 1.01) visualViewport.dispatchEvent(new Event('resize')); }, 300));
 
 // ───────── 시작 ─────────
