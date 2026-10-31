@@ -612,3 +612,5 @@ body.menu-open #btn-go, body:has(#menu:not([hidden])) #btn-go { visibility: hidd
   html body #side-acts { grid-template-columns: repeat(2, auto); gap: 6px; }
   html body #side-acts .ctx { width: 92px; padding: 7px 0; font-size: 13.5px; }
 }
+/* 일어서기 단추는 없애요: 다른 곳을 누르거나 움직이면 일어나요 */
+#btn-stand { display: none !important; }
