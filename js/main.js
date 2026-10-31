@@ -405,6 +405,8 @@ function handleRemoteState(peer, d) {
   if (d.a !== r.appliedA) {
     r.appliedA = d.a;
     if (d.a === 'fireworks' && S.mode === 'world' && d.s === S.scene) launchFirework(scene, new THREE.Vector3(d.p[0], 0, d.p[1]));
+    // 가까이(15m 안)에서 누가 손을 흔들면 알려 줘요
+    if (d.a === 'wave' && S.mode === 'world' && d.s === S.scene && S.scene !== 'room' && S.me && Math.hypot(d.p[0] - S.me.group.position.x, d.p[1] - S.me.group.position.z) < 15) toast(`👋 ${d.n}님이 손을 흔들었어요`);
     if (d.a) { r.av.action = d.a; r.av.actionT = d.at || 0; r.av.bowCount = 0; }
     else if (ACTIONS.find((a) => a.id === r.av.action)?.loop) r.av.stop();
   }
@@ -562,6 +564,7 @@ function renderActions() {
 }
 
 let spotArrived = null;
+const MOVING_ACTS = new Set(['bugs', 'bubbles', 'kite', 'bike', 'kayak', 'stepstones', 'wavedodge', 'shells']);   // 움직이며 하는 동작
 function doAction(id) {
   // 산보 · 탑돌이: 길을 따라 걷는 동작이라 따로 (다시 누르면 멈춤)
   if (id === 'walk' || id === 'tapdori') {
@@ -818,6 +821,7 @@ function stepWander(dt) {
   if (!wanderTo) {
     const ang = Math.random() * Math.PI * 2, r = 1.2 + Math.random() * (conf.r - 1.2);
     wanderTo = wanderAt.clone().add(new THREE.Vector3(Math.cos(ang) * r, 0, Math.sin(ang) * r)); collide(wanderTo);
+    if (S.active.dryZ != null) wanderTo.z = Math.min(wanderTo.z, S.active.dryZ);   // 물에는 들어가지 않아요
   }
   const d = wanderTo.clone().sub(g.position).setY(0), len = d.length(), sp = conf.speed;
   if (len < 0.15) { wanderTo = null; wanderWait = conf.wait * (0.6 + Math.random() * 0.8); if (a === 'shells') { S.me.actionT = 0; wanderWait = 4.2; setTimeout(pickShell, 1300); } return; }   // 숙여 줍고(0~1.3초) 짝! 들어 보이기
@@ -1589,7 +1593,7 @@ function moveMe(dt) {
       t.onArrive?.();
     } else { dir = tmpV.normalize(); speed = S.target.run && canRun() ? RUN_SPEED : S.target.speed || SPEED; }
   }
-  if (dir && S.me.action && S.me.action !== 'meditate' && !(S.walking && S.me.action === 'tapdori')) { S.me.stop(); if (!S.stones) syncActionButtons(); }
+  if (dir && S.me.action && S.me.action !== 'meditate' && !(S.walking && S.me.action === 'tapdori') && !MOVING_ACTS.has(S.me.action)) { S.me.stop(); pushState(true); if (!S.stones) syncActionButtons(); }   // 다른 사람 화면에서도 바로 멈추게
   const before = g.position.clone();
   if (dir) {
     g.position.addScaledVector(dir, speed * dt);

@@ -393,7 +393,9 @@ export function buildShore(loc) {
     for (let i = 0; i < 6; i++) { const k = 0.32 - i * 0.04; const st = new THREE.Mesh(new THREE.DodecahedronGeometry(k, 0), mat(i % 2 ? '#8f877a' : '#a39b8c')); st.scale.y = 0.55; st.position.y = 0.1 + i * 0.17; st.rotation.y = i; castle.add(st); }
   }
   castle.children.forEach((c) => { c.visible = false; c.castShadow = true; });
-  return { ...w, seats, blockers, walkPath, camDist: 7, camRise: 0.3, camLookY: 1.2,
+  // 돌아다니는 동작(곤충 잡기 · 비눗방울 · 연날리기 · 조개 줍기)은 물에 들어가지 않게 이 줄 안쪽까지만
+  const dryZ = { forest: 3.5, sea: 8.5, river: 8.8 }[loc.id];
+  return { ...w, seats, blockers, walkPath, dryZ, camDist: 7, camRise: 0.3, camLookY: 1.2,
     waterY: { forest: -0.32, sea: -0.35, river: -0.45 }[loc.id],
     beddings: { stargaze: sm },
     castle,

@@ -816,7 +816,7 @@ export class Avatar {
     if (SEATED_ONLY.has(this.action) && !this.seated) this.action = null;
     let target = this.seated ? (this.block ? SIT_BLOCK : SIT) : STAND;
     if (this.action) {
-      if (this.speed > 0.2 && !MOVING.has(this.action)) this.action = null;   // 탑돌이 · 곤충 잡기 · 비눗방울은 걸으면서 하는 동작
+      if (this.speed > 0.2 && !MOVING.has(this.action)) { this.action = null; for (const g of Object.values(this.camp)) g.visible = false; }   // 탑돌이 · 곤충 잡기 · 비눗방울은 걸으면서 하는 동작
       else if (this.action === 'shells' && this.speed > 0.2) { /* 걸을 때는 줍기 자세 없이 */ }
       else target = actionPose(this.action, this.actionT, target, this.seated);
     }
@@ -849,7 +849,14 @@ export class Avatar {
     this.lieK = lerp(this.lieK || 0, lieT, Math.min(1, dt * 3));
     this.body.rotation.x = -this.lieK * Math.PI / 2;
     // 줄넘기 줄 돌리기 · 카약 노 젓기 · 이불 펄럭
-    if (this.rope.visible) this.rope.rotation.x = (this.actionT / 0.6) * Math.PI * 2;
+    if (this.rope.visible) {
+      // 줄 크기는 키에 맞춰요: 손 높이를 축으로, 머리 위와 발밑을 넉넉히 지나가게
+      this.group.updateMatrixWorld(true);
+      const base = this.group.position.y, hand = this.armR.localToWorld(new THREE.Vector3(0, this.handY, 0)).y - base, top = this.head.localToWorld(new THREE.Vector3(0, 0.5, 0)).y - base;
+      const sc = this.group.scale.y || 1, r = (Math.max(hand, top - hand) + 0.15) / sc;
+      this.rope.position.y = hand / sc; this.rope.scale.set(1, r / 1.05, r / 1.05);
+      this.rope.rotation.x = (this.actionT / 0.6) * Math.PI * 2;
+    }
     if (this.kayakG.visible) this.kayakG.userData.paddle.rotation.x = Math.sin(this.actionT * 2.6) * 0.6;
     if (this.quilt.visible) this.quilt.rotation.x = -0.3 + Math.sin(this.actionT * 11) * 0.25;
     this.body.rotation.y = this.action === 'dance' ? Math.sin(performance.now() / 260) * 0.35 : 0;   // 춤: 몸을 좌우로 비틀기
