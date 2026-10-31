@@ -192,7 +192,7 @@ export const SCENE_ACTIONS = {
   // 마당은 10개까지 (숫자 키 1~0). 넘치는 놀이(비눗방울 · 연날리기 · 프리스비 · 줄넘기)는 물가에서
   in: ['warm', 'roast', 'fireworks', 'hammock', 'badminton', 'bike'],
   room: ['nap', 'read', 'guitar', 'tea', 'stretch', 'dance'],
-  out: ['fish', 'skip', 'splash', 'hammock', 'bubbles', 'stepstones', 'kayak', 'sandcastle', 'wavedodge', 'shells', 'kite'],   // 모래성 · 파도 피하기는 바닷가에서만
+  out: ['fish', 'skip', 'splash', 'bubbles', 'stepstones', 'kayak', 'sandcastle', 'wavedodge', 'shells', 'kite'],   // 모래성 · 파도 피하기는 바닷가에서만
   meal: ['cook', 'grill', 'eat', 'wash', 'sweep'],
 };
 // 마당 · 물가 어디서나 하는 동작: 오른쪽 세로 단추로 (아래 동작 줄과 따로)

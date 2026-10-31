@@ -358,8 +358,7 @@ export function buildShore(loc) {
   const bucket = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.22, 0.4, 14), mat('#2f7a96')); if (loc.id === 'sea') bucket.position.set(-5.2, 0.2, 8.4); else bucket.position.set(1.3, 0.2, sz - 0.4); bucket.castShadow = true; w.group.add(bucket);
   if (loc.id === 'river') { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 1.8, 8), mat('#5a3a24')); post.position.set(-4.2, 0.9, sz - 1); w.group.add(post); lantern(w.group, -4.2, 1.85, sz - 1); }
   // 물가에도 해먹 · 별자리 매트, 물가를 따라 도는 산책길
-  const hx = loc.id === 'sea' ? -12 : 12, hz = loc.id === 'sea' ? 4.5 : sz - 4;
-  const blockers = hammock(w.group, hx, hz);
+  const blockers = [];   // 물가에는 해먹을 두지 않아요
   const sm = starMat(w.group, loc.id === 'sea' ? 14 : -10, sz - 3.6);
   const walkPath = Array.from({ length: 28 }, (_, k) => { const a = (-2 * Math.PI * k) / 28; return new THREE.Vector3(14 * Math.sin(a), 0, sz - 4.2 + 3.2 * Math.cos(a)); });
   const wy = { forest: -0.32, sea: -0.35, river: -0.45 }[loc.id];
@@ -392,7 +391,7 @@ export function buildShore(loc) {
       wavedodge: { pingpong: true, speed: 3.8, pause: 0.6, pts: [new THREE.Vector3(2, 0, sz - 0.1), new THREE.Vector3(2, 0, sz - 4)] },
     },
     wanders: { shells: { r: 4, speed: 0.8, wait: 1.6, center: new THREE.Vector3(0, 0, sz - 1.5) }, kite: { r: 6, speed: 2.6, wait: 0.4, center: new THREE.Vector3(0, 0, sz - 4) } },
-    spots: { skip: { x: 0, z: sz - 0.1, rot: 0, jx: 4 }, splash: { x: 0, z: sz - 0.1, rot: 0, jx: 4 }, hammock: hammockSpot(hx, hz), stargaze: { x: sm.position.x, z: sz - 2.8, rot: 0, y: 0.06 }, sandcastle: { x: -3, z: sz - 1.2, rot: 0 }, stepstones: { x: sx, z: sz - 0.4, rot: 0 }, kayak: { x: 0, z: sz - 0.2, rot: 0 }, wavedodge: { x: 2, z: sz - 0.1, rot: 0 }, shells: { x: 0, z: sz - 1.5, rot: 0 } } };
+    spots: { skip: { x: 0, z: sz - 0.1, rot: 0, jx: 4 }, splash: { x: 0, z: sz - 0.1, rot: 0, jx: 4 }, stargaze: { x: sm.position.x, z: sz - 2.8, rot: 0, y: 0.06 }, sandcastle: { x: -3, z: sz - 1.2, rot: 0 }, stepstones: { x: sx, z: sz - 0.4, rot: 0 }, kayak: { x: 0, z: sz - 0.2, rot: 0 }, wavedodge: { x: 2, z: sz - 0.1, rot: 0 }, shells: { x: 0, z: sz - 1.5, rot: 0 } } };
 }
 function beachChair(color) {   // 바닷가 접이식 비치 체어 (줄무늬 천)
   const g = relaxChair(color);
