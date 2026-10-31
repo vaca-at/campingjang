@@ -202,11 +202,12 @@ function actionPose(action, t, base, seated) {
     }
     case 'jumprope': {   // 줄이 발밑을 지날 때 폴짝 (0.6초에 한 번)
       const ph = (t / 0.6) % 1, hop = Math.max(0, Math.sin(ph * Math.PI * 2 - Math.PI / 2));
-      return mix(base, { y: 0.16 * hop, aL: [-0.45, -0.75], aR: [-0.45, 0.75], lL: [-0.35 * hop, 0], lR: [-0.35 * hop, 0], head: 0.05 }, ease(t / 0.3));
+      const w = Math.sin(ph * Math.PI * 2) * 0.12;   // 손목으로 작게 원 그리기
+      return mix(base, { y: 0.16 * hop, aL: [-0.4 + w, -0.28], aR: [-0.4 + w, 0.28], lL: [-0.3 * hop, 0], lR: [-0.3 * hop, 0], head: 0.05 }, ease(t / 0.3));
     }
-    case 'bike': {   // 페달 밟기 + 손잡이
-      const p = Math.sin(t * 8);
-      return mix(base, { y: 0.08, lL: [-1.1 + p * 0.5, 0.05], lR: [-1.1 - p * 0.5, -0.05], aL: [-1.25, -0.2], aR: [-1.25, 0.2], hip: 0.35, head: -0.15 }, ease(t / 0.3));
+    case 'bike': {   // 안장에 앉아 페달을 빙글빙글 + 손잡이 (발은 땅에서 떨어져요)
+      const p = Math.sin(t * 7);
+      return mix(base, { y: 0.32, lL: [-0.85 + p * 0.45, 0.06], lR: [-0.85 - p * 0.45, -0.06], aL: [-1.2, -0.18], aR: [-1.2, 0.18], hip: 0.3, head: -0.2 }, ease(t / 0.3));
     }
     case 'kayak': {   // 카약 안에 앉아 좌우로 노 젓기
       const p = Math.sin(t * 2.6);
@@ -699,7 +700,10 @@ export class Avatar {
     const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.05, 16), mat('#2a2a2a')); hole.scale.z = 1.4; hole.position.y = 0.22; kayak.add(hole);
     const paddle = new THREE.Group(); paddle.add(mesh(G.cyl, mat('#e8e2d6'), 0.025, 2.0, 0.025, 0, 0, 0)); for (const s of [-1, 1]) paddle.add(mesh(G.box, mat('#2f7a96'), 0.2, 0.35, 0.03, 0, s * 1.0, 0)); paddle.rotation.z = Math.PI / 2; paddle.position.set(0, 0.95, 0.35); kayak.add(paddle);
     kayak.userData.paddle = paddle;
-    const rope = new THREE.Group(); const arc = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.012, 4, 32, Math.PI), mat('#e2603d')); arc.rotation.y = Math.PI / 2; rope.add(arc); rope.position.y = 0.95;
+    // 줄넘기: 양손에 손잡이, 두 손을 잇는 줄이 손 높이를 축으로 빙글 (머리 위 → 앞 → 발밑 → 뒤)
+    const rope = new THREE.Group(); const arc = new THREE.Mesh(new THREE.TorusGeometry(1, 0.015, 4, 40, Math.PI), mat('#e2603d')); arc.scale.set(0.34, 1.05, 1); rope.add(arc);
+    for (const sx of [-0.34, 0.34]) { const h = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.16, 8), mat('#2f7a96')); h.position.set(sx, 0, 0); rope.add(h); }
+    rope.position.set(0, 0.82, 0.12);
     const quilt = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.6, 6, 4), new THREE.MeshStandardMaterial({ color: '#e8b54a', side: THREE.DoubleSide })); quilt.position.set(0, 1.0, 0.55); quilt.rotation.x = -0.3;
     const disc = new THREE.Group(); disc.add(mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.02, 16), mat('#e2603d'), 1, 1, 1, 0, -0.08, 0.05));
     const spool = new THREE.Group(); spool.add(mesh(G.cyl, mat('#c9a86a'), 0.05, 0.12, 0.05, 0, -0.06, 0.02));
@@ -806,7 +810,7 @@ export class Avatar {
     }
 
     // 걷기: 다리와 팔을 흔든다
-    if (!this.seated && this.speed > 0.05) {
+    if (!this.seated && this.speed > 0.05 && !['bike', 'kayak'].includes(this.action)) {   // 자전거 · 카약은 걷는 다리 흔들기 없이
       // 뛸 때(빠를 때)는 보폭이 커지고 몸을 앞으로 숙이며 팔을 굽혀 크게 흔든다
       const run = Math.min(1, Math.max(0, (this.speed - 3.2) / 1.6));
       this.walkPhase += dt * (6 + Math.min(this.speed, 3.2) * 2.5 + run * 4);

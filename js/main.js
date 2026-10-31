@@ -553,8 +553,9 @@ const ICONS = {
 
 // 아래 동작 줄: 장소마다 다른 다섯 가지 (js/data.js 의 SCENE_ACTIONS)
 function renderActions() {
-  const ids = SCENE_ACTIONS[S.scene] || SCENE_ACTIONS.in, names = { ...(SCENE_ACTION_NAMES[S.scene] || {}), ...(S.scene === 'out' && S.loc?.id !== 'sea' ? { sandcastle: '돌탑 쌓기', shells: '예쁜 돌 줍기', wavedodge: '물결 피하기' } : {}) };
-  $('#actions').innerHTML = ids.map((id) => ACTIONS.find((a) => a.id === id)).map((a) =>
+  const ids = SCENE_ACTIONS[S.scene] || SCENE_ACTIONS.in, names = { ...(SCENE_ACTION_NAMES[S.scene] || {}), ...(S.scene === 'out' && S.loc?.id !== 'sea' ? { shells: '예쁜 돌 줍기' } : {}) };
+  const onlySea = ['sandcastle', 'wavedodge'];
+  $('#actions').innerHTML = ids.filter((id) => S.loc?.id === 'sea' || !onlySea.includes(id)).map((id) => ACTIONS.find((a) => a.id === id)).map((a) =>
     `<button class="act" data-act="${a.id}" aria-pressed="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${ICONS[a.id] || ''}</svg>${names[a.id] || a.name}<small class="cap">${a.cap}</small></button>`).join('');
   syncActionButtons();
 }
@@ -585,7 +586,9 @@ function doAction(id) {
   // 자리가 여럿이면(코트 양쪽) 다른 사람이 덜 가까운 쪽으로
   if (Array.isArray(spot)) {
     const others = [...S.remotes.values()].filter((r) => r.st.s === S.scene).map((r) => r.av.group.position);
-    spot = spot.map((p) => [p, Math.min(99, ...others.map((o) => Math.hypot(o.x - p.x, o.z - p.z)))]).sort((a, b) => b[1] - a[1])[0][0];
+    const me = S.me.group.position;
+    spot = spot.nearest ? [...spot].sort((a, b) => Math.hypot(a.x - me.x, a.z - me.z) - Math.hypot(b.x - me.x, b.z - me.z))[0]   // 불꽃놀이: 가장 가까운 자리
+      : spot.map((p) => [p, Math.min(99, ...others.map((o) => Math.hypot(o.x - p.x, o.z - p.z)))]).sort((a, b) => b[1] - a[1])[0][0];
   }
   if (spot && S.me.action !== id && spotArrived !== id) {
     const to = new THREE.Vector3(spot.x + (Math.random() - 0.5) * (spot.jx || 0), 0, spot.z);
@@ -616,6 +619,7 @@ function doAction(id) {
     else if (S.me.group.position.y > 0.01 && !S.me.seated) { S.me.group.position.y = 0; sitOn(S.active.seats[0], { auto: true }); }
   } else if (on && spotArrived === id && S.spotY != null) { S.seat = null; S.me.seated = false; S.me.group.position.y = S.spotY; }   // 해먹 · 매트 위로
   else if (!on || !['hammock', 'stargaze'].includes(id)) { if (S.me.group.position.y > 0.01 && !S.me.seated && S.scene !== 'room') S.me.group.position.y = 0; }
+  if (S.scene === 'room') placeCameraBehind(S.active.camDist || 2.4);   // 내 자리: 눕거나 자리를 옮겨도 카메라가 나를 다시 비추게
   if (on && id === 'stargaze' && dayNow() > 0.5) toast('별은 해가 진 뒤에 잘 보여요. 낮에는 구름 구경!');
   if (on && id === 'fireworks') { launchFirework(scene, S.me.group.position); addRecord('fireworks', 1); }
   if (on && (id === 'keunjeol' || id === 'banbae')) { bowl(0.4); addRecord('bows', 1); }

@@ -321,7 +321,9 @@ export function buildCampsite(loc) {
     setShelter,
     // 동작마다 걸어가서 하는 자리 (x, z, 바라보는 쪽, 옆으로 흩어지는 폭)
     spots: {
-      chop: { x: -6.2, z: -5.3, rot: Math.PI }, fireworks: { x: 0, z: 11, rot: Math.PI, jx: 3 },
+      chop: { x: -6.2, z: -5.3, rot: Math.PI },
+      // 불꽃놀이: 마당 곳곳 빈자리 다섯 곳 중 가장 가까운 데서
+      fireworks: Object.assign([{ x: 0, z: 11, rot: Math.PI }, { x: -8, z: 3, rot: Math.PI }, { x: 7, z: 6, rot: Math.PI }, { x: -6.5, z: -13, rot: 0 }, { x: 6.5, z: -12, rot: 0 }], { nearest: true }),
       hammock: hammockSpot(-12, -10),
       stargaze: { x: 6, z: -4.1, rot: 0, y: 0.06 },
       // 코트 양쪽 끝: 비어 있는 쪽으로 가요
