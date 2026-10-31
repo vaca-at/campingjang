@@ -218,8 +218,9 @@ function actionPose(action, t, base, seated) {
     case 'wavedodge':   // 신나서 두 팔 번쩍
       return mix(base, { aL: [-2.5, -0.5], aR: [-2.5, 0.5], head: -0.1 }, ease(t / 0.3));
     case 'shells': {   // 걷다가 멈추면 허리 숙여 줍기 (줍는 순간은 main 이 actionT 로 맞춰요)
-      const pick = bump(t % 5, 3.2, 3.7, 4.3, 4.8);
-      return mix(base, { hip: 1.0 * pick, aR: [-0.9 * pick, 0.1], aL: [-0.3, -0.2], head: 0.4 * pick }, ease(t / 0.3));
+      // 0~1.3초 허리 숙여 줍기 → 1.3~3.6초 짝! 오른손을 번쩍 들어 보여 주기 (멈춰 있을 때만)
+      const pick = bump(t, 0.1, 0.5, 0.9, 1.3), show = bump(t, 1.3, 1.6, 3.2, 3.6);
+      return mix(base, { hip: 1.0 * pick, aR: [-0.9 * pick - 2.5 * show, 0.1 + 0.25 * show], aL: [-0.3 - 0.4 * show, -0.2 - 0.5 * show], head: 0.4 * pick - 0.3 * show }, ease(t / 0.3));
     }
     case 'sandcastle': {   // 무릎 꿇고 두 손으로 토닥토닥
       const a = Math.sin(t * 5), b = Math.sin(t * 5 + Math.PI);
@@ -587,13 +588,21 @@ export class Avatar {
 
     // 발우(가슴 앞)와 숟가락(오른손), 책(가슴 앞)
     const bowl = new THREE.Group();
-    const lacquer = mat('#4a2418', { roughness: 0.3 });
-    bowl.add(mesh(new THREE.CylinderGeometry(0.13, 0.08, 0.09, 20), lacquer));
-    bowl.add(mesh(new THREE.CylinderGeometry(0.11, 0.11, 0.01, 20), mat('#f4efe2'), 1, 1, 1, 0, 0.042, 0));
-    bowl.position.set(0, 0.16, 0.3);
+    // 캠핑 라면: 노란 양은 냄비(양쪽 손잡이) + 꼬불꼬불 면 · 국물 · 반숙 달걀 · 파
+    const tin = mat('#e8b84a', { metalness: 0.55, roughness: 0.35 });
+    bowl.add(mesh(new THREE.CylinderGeometry(0.15, 0.14, 0.09, 24, 1, true), tin));
+    bowl.add(mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.01, 24), tin, 1, 1, 1, 0, -0.045, 0));
+    bowl.add(mesh(new THREE.CylinderGeometry(0.142, 0.142, 0.012, 24), mat('#c9572a'), 1, 1, 1, 0, 0.03, 0));   // 빨간 국물
+    for (let i = 0; i < 9; i++) { const n = new THREE.Mesh(new THREE.TorusGeometry(0.035 + (i % 3) * 0.018, 0.007, 4, 12), mat('#f2d88a')); n.rotation.x = Math.PI / 2; n.position.set(Math.cos(i * 2.4) * 0.05, 0.04, Math.sin(i * 2.4) * 0.05); bowl.add(n); }
+    const egg = new THREE.Mesh(new THREE.SphereGeometry(0.035, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), mat('#f8f4ea')); egg.position.set(0.05, 0.04, -0.03); bowl.add(egg);
+    const yolk = new THREE.Mesh(new THREE.SphereGeometry(0.017, 8, 6), mat('#f2a51a')); yolk.position.set(0.05, 0.065, -0.03); bowl.add(yolk);
+    for (let i = 0; i < 4; i++) bowl.add(mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.006, 8), mat('#5fa84a'), 1, 1, 1, -0.06 + i * 0.03, 0.045, 0.06));
+    for (const s of [-1, 1]) { const h = new THREE.Mesh(new THREE.TorusGeometry(0.03, 0.007, 4, 10, Math.PI), tin); h.rotation.y = s * Math.PI / 2; h.position.set(s * 0.15, 0.03, 0); bowl.add(h); }
+    bowl.position.set(0, 0.42, 0.34);   // 가슴 앞, 식탁 위로 보이게
     bowl.visible = false;
     this.hips.add(bowl);
-    const spoon = mesh(G.box, mat('#c9a86a', { metalness: 0.5, roughness: 0.4 }), 0.025, 0.2, 0.025, 0, this.handY - 0.05, 0.06);
+    // 젓가락 한 쌍 (오른손)
+    const spoon = new THREE.Group(); for (const x of [-0.012, 0.012]) spoon.add(mesh(G.box, mat('#c9c3b6', { metalness: 0.6, roughness: 0.3 }), 0.008, 0.24, 0.008, x, 0, 0)); spoon.position.set(0, this.handY - 0.1, 0.07); spoon.rotation.x = 0.5;
     spoon.visible = false;
     this.armR.add(spoon);
     const book = new THREE.Group();
@@ -706,10 +715,12 @@ export class Avatar {
     rope.position.set(0, 0.82, 0.12);
     const quilt = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.6, 6, 4), new THREE.MeshStandardMaterial({ color: '#e8b54a', side: THREE.DoubleSide })); quilt.position.set(0, 1.0, 0.55); quilt.rotation.x = -0.3;
     const disc = new THREE.Group(); disc.add(mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.02, 16), mat('#e2603d'), 1, 1, 1, 0, -0.08, 0.05));
+    const shellProp = new THREE.Group(); const sh = new THREE.Mesh(new THREE.SphereGeometry(0.08, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), mat('#f4c7c0')); sh.scale.y = 0.6; sh.position.set(0, -0.08, 0.06); shellProp.add(sh);
+    this.shellProp = shellProp;
     const spool = new THREE.Group(); spool.add(mesh(G.cyl, mat('#c9a86a'), 0.05, 0.12, 0.05, 0, -0.06, 0.02));
     const shovel = new THREE.Group(); shovel.add(mesh(G.cyl, mat('#e8b54a'), 0.015, 0.25, 0.015, 0, -0.1, 0)); shovel.add(mesh(G.box, mat('#e8b54a'), 0.1, 0.12, 0.02, 0, -0.26, 0.02));
     this.camp = { roast: hand(skewer), chop: hand(axe), fish: hand(rod), bugs: hand(net), cook: hand(spoon2), grill: hand(tongs), guitar, pot, badminton: hand(racket), catchball: hand(glove), bubbles: hand(wand),
-      bike: onBody(bike), kayak: onBody(kayak), jumprope: onBody(rope), shake: onBody(quilt), frisbee: hand(disc), kite: hand(spool), sandcastle: hand(shovel) };
+      shells: hand(shellProp), bike: onBody(bike), kayak: onBody(kayak), jumprope: onBody(rope), shake: onBody(quilt), frisbee: hand(disc), kite: hand(spool), sandcastle: hand(shovel) };
     this.rope = rope; this.kayakG = kayak; this.quilt = quilt;
 
     // 명상할 때 은은한 빛 고리
@@ -806,6 +817,7 @@ export class Avatar {
     let target = this.seated ? (this.block ? SIT_BLOCK : SIT) : STAND;
     if (this.action) {
       if (this.speed > 0.2 && !MOVING.has(this.action)) this.action = null;   // 탑돌이 · 곤충 잡기 · 비눗방울은 걸으면서 하는 동작
+      else if (this.action === 'shells' && this.speed > 0.2) { /* 걸을 때는 줍기 자세 없이 */ }
       else target = actionPose(this.action, this.actionT, target, this.seated);
     }
 
@@ -874,6 +886,7 @@ export class Avatar {
     this.paper.visible = this.brush.visible = this.action === 'sagyeong' && this.seated;
     this.broom.visible = this.action === 'sweep';
     for (const [k, g] of Object.entries(this.camp)) g.visible = this.action === k || (k === 'pot' && (this.action === 'cook' || this.action === 'grill'));
+    if (this.action === 'shells') this.shellProp.visible = this.actionT > 0.9 && this.actionT < 3.6 && this.speed < 0.2;   // 주운 뒤 들어 보일 때만
     // 표정: 4초 동안 (그 뒤 원래 얼굴로)
     this.stepFace(dt);
     // 돌탑: 한 번 올릴 때마다 한 층씩 (다섯 층 다 쌓으면 다시 처음부터)

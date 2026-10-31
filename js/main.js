@@ -554,9 +554,9 @@ const ICONS = {
 // 아래 동작 줄: 장소마다 다른 다섯 가지 (js/data.js 의 SCENE_ACTIONS)
 function renderActions() {
   const ids = SCENE_ACTIONS[S.scene] || SCENE_ACTIONS.in, names = { ...(SCENE_ACTION_NAMES[S.scene] || {}), ...(S.scene === 'out' && S.loc?.id !== 'sea' ? { shells: '예쁜 돌 줍기' } : {}) };
-  $('#side-acts').innerHTML = COMMON_SCENES.includes(S.scene) ? COMMON_ACTIONS.map((id) => ACTIONS.find((a) => a.id === id)).map((a) => `<button class="glass ctx act" data-act="${a.id}" aria-pressed="false"><span class="lbl">${a.name}</span><small class="cap">${a.cap}</small></button>`).join('') : '';
-  const onlySea = ['sandcastle', 'wavedodge'];
-  $('#actions').innerHTML = ids.filter((id) => S.loc?.id === 'sea' || !onlySea.includes(id)).map((id) => ACTIONS.find((a) => a.id === id)).map((a) =>
+  $('#side-acts').innerHTML = COMMON_SCENES.includes(S.scene) ? COMMON_ACTIONS[S.scene].map((id) => ACTIONS.find((a) => a.id === id)).map((a) => `<button class="glass ctx act" data-act="${a.id}" aria-pressed="false"><span class="lbl">${a.name}</span><small class="cap">${a.cap}</small></button>`).join('') : '';
+  const onlySea = ['sandcastle'], notSea = ['stepstones'];   // 바닷가엔 징검다리 없이, 모래성은 바닷가에서만
+  $('#actions').innerHTML = ids.filter((id) => (S.loc?.id === 'sea' || !onlySea.includes(id)) && (S.loc?.id !== 'sea' || !notSea.includes(id))).map((id) => ACTIONS.find((a) => a.id === id)).map((a) =>
     `<button class="act" data-act="${a.id}" aria-pressed="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${ICONS[a.id] || ''}</svg>${names[a.id] || a.name}<small class="cap">${a.cap}</small></button>`).join('');
   syncActionButtons();
 }
@@ -620,7 +620,14 @@ function doAction(id) {
     else if (S.me.group.position.y > 0.01 && !S.me.seated) { S.me.group.position.y = 0; sitOn(S.active.seats[0], { auto: true }); }
   } else if (on && spotArrived === id && S.spotY != null) { S.seat = null; S.me.seated = false; S.me.group.position.y = S.spotY; }   // 해먹 · 매트 위로
   else if (!on || !['hammock', 'stargaze'].includes(id)) { if (S.me.group.position.y > 0.01 && !S.me.seated && S.scene !== 'room') S.me.group.position.y = 0; }
-  if (S.scene === 'room') placeCameraBehind(S.active.camDist || 2.4);   // 내 자리: 눕거나 자리를 옮겨도 카메라가 나를 다시 비추게
+  if (S.scene === 'room') placeCameraBehind(S.active.camDist || 2.4);
+  // 조리대 앞 동작(요리 · 고기 굽기 · 설거지): 등만 보이지 않게 카메라를 옆으로 돌려 손과 냄비가 보이게
+  if (on && spotArrived === id && S.active.spots?.[id]?.sideCam) {
+    const g = S.me.group, f = new THREE.Vector3(Math.sin(g.rotation.y), 0, Math.cos(g.rotation.y)), side = new THREE.Vector3(f.z, 0, -f.x);
+    controls.target.copy(g.position).add(new THREE.Vector3(0, 1.1, 0)).addScaledVector(f, 0.4);
+    camera.position.copy(g.position).addScaledVector(side, 2.3).addScaledVector(f, -0.6).add(new THREE.Vector3(0, 1.8, 0));
+    controls.update();
+  }   // 내 자리: 눕거나 자리를 옮겨도 카메라가 나를 다시 비추게
   if (on && id === 'stargaze' && dayNow() > 0.5) toast('별은 해가 진 뒤에 잘 보여요. 낮에는 구름 구경!');
   if (on && id === 'fireworks') { launchFirework(scene, S.me.group.position); addRecord('fireworks', 1); }
   if (on && (id === 'keunjeol' || id === 'banbae')) { bowl(0.4); addRecord('bows', 1); }
@@ -806,13 +813,13 @@ function stepWander(dt) {
   if (!conf || S.seat != null || S.target || S.walking) { wanderAt = wanderTo = null; return; }
   const g = S.me.group;
   wanderAt ||= (conf.center || g.position).clone();
-  if (wanderWait > 0) { wanderWait -= dt; return; }
+  if (wanderWait > 0) { wanderWait -= dt; S.me.speed = 0; return; }
   if (!wanderTo) {
     const ang = Math.random() * Math.PI * 2, r = 1.2 + Math.random() * (conf.r - 1.2);
     wanderTo = wanderAt.clone().add(new THREE.Vector3(Math.cos(ang) * r, 0, Math.sin(ang) * r)); collide(wanderTo);
   }
   const d = wanderTo.clone().sub(g.position).setY(0), len = d.length(), sp = conf.speed;
-  if (len < 0.15) { wanderTo = null; wanderWait = conf.wait * (0.6 + Math.random() * 0.8); if (a === 'shells') { S.me.actionT = 3.0; pickShell(); } return; }
+  if (len < 0.15) { wanderTo = null; wanderWait = conf.wait * (0.6 + Math.random() * 0.8); if (a === 'shells') { S.me.actionT = 0; wanderWait = 4.2; setTimeout(pickShell, 1300); } return; }   // 숙여 줍고(0~1.3초) 짝! 들어 보이기
   const step = Math.min(len, sp * dt), before = g.position.clone();
   g.position.addScaledVector(d.normalize(), step); collide(g.position);
   followCam(before);
@@ -860,7 +867,7 @@ function pickShell() {
   shellN++;
   const sea = S.loc?.id === 'sea';
   const names = sea ? ['가리비 껍데기', '소라 껍데기', '하얀 조개', '분홍 조개', '반질반질한 몽돌'] : ['동글동글 조약돌', '줄무늬 돌', '하트 모양 돌', '반짝이는 차돌', '납작한 물수제비 돌'];
-  if (Math.random() < 0.7) toast(`${sea ? '🐚' : '🪨'} ${names[Math.floor(Math.random() * names.length)]}을(를) 주웠어요 · 오늘 ${shellN}개`);
+  if (S.me?.action === 'shells') toast(`${sea ? '🐚' : '🪨'} 짝! ${names[Math.floor(Math.random() * names.length)]} 한 개 · 오늘 ${shellN}개`);
 }
 
 // 연날리기 연 · 프리스비 원반 · 모래성: 누가 하든 둘레에 보여요

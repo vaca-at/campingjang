@@ -6,6 +6,14 @@ import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.j
 import { buildExterior, buildWaterside, buildCampRoom } from './world.js';
 import { mat } from './avatar.js';
 
+// 컵: 둥근 머그 (몸통 + 손잡이)
+function mug(g, c, x, y, z, k = 1) {
+  const m = new THREE.Group(); m.position.set(x, y, z); m.scale.setScalar(k); g.add(m);
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.04, 0.1, 16), mat(c)); m.add(body);
+  const h = new THREE.Mesh(new THREE.TorusGeometry(0.025, 0.008, 6, 12, Math.PI), mat(c)); h.rotation.z = -Math.PI / 2; h.position.x = 0.045; m.add(h);
+  const tea = new THREE.Mesh(new THREE.CircleGeometry(0.038, 16), mat('#6b3e22')); tea.rotation.x = -Math.PI / 2; tea.position.y = 0.04; m.add(tea);
+  return m;
+}
 const box = (g, c, w, h, d, x, y, z, o = {}) => { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(c, o)); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; g.add(m); return m; };
 
 // 쉼터 모양: 디자인마다 고를 수 있어요 (텐트: 돔 · 티피, 캠핑카: 미니밴 · 모터홈, 카바나: 천막 카바나)
@@ -216,7 +224,7 @@ function picnicTable(g, cx, cz, rot) {
   for (const x of [-0.75, 0.75]) box(t, WOOD_D, 0.07, 0.06, 1.5, x, 0.3, 0);
   // 위에 랜턴 · 컵
   const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.2, 10), new THREE.MeshStandardMaterial({ color: '#ffe0a0', emissive: '#ffb74a', emissiveIntensity: 1.2 })); lamp.position.set(0.3, 0.9, 0); t.add(lamp);
-  box(t, '#e8e2d6', 0.08, 0.1, 0.08, -0.4, 0.84, 0.15);
+  mug(t, '#e8e2d6', -0.4, 0.84, 0.15);
 }
 function roundTable(g, cx, cz, color = '#3a3f45') {
   const t = new THREE.Group(); t.position.set(cx, 0, cz); g.add(t);
@@ -224,7 +232,7 @@ function roundTable(g, cx, cz, color = '#3a3f45') {
   for (let i = 0; i < 3; i++) { const l = box(t, color, 0.03, 0.72, 0.03, Math.sin(i * 2.1) * 0.35, 0.34, Math.cos(i * 2.1) * 0.35); l.rotation.set(Math.cos(i * 2.1) * 0.25, 0, -Math.sin(i * 2.1) * 0.25); }
   const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.09, 0.14, 12), mat('#c9572a')); pot.position.y = 0.78; t.add(pot);
 }
-function lowTable(g, cx, cz, rot) { const t = new THREE.Group(); t.position.set(cx, 0, cz); t.rotation.y = rot; g.add(t); box(t, WOOD, 0.9, 0.05, 0.55, 0, 0.36, 0); for (const x of [-0.38, 0.38]) for (const z of [-0.22, 0.22]) box(t, WOOD_D, 0.04, 0.34, 0.04, x, 0.17, z); box(t, '#2f7a96', 0.12, 0.12, 0.12, 0.2, 0.44, 0); }
+function lowTable(g, cx, cz, rot) { const t = new THREE.Group(); t.position.set(cx, 0, cz); t.rotation.y = rot; g.add(t); box(t, WOOD, 0.9, 0.05, 0.55, 0, 0.36, 0); for (const x of [-0.38, 0.38]) for (const z of [-0.22, 0.22]) box(t, WOOD_D, 0.04, 0.34, 0.04, x, 0.17, z); mug(t, '#2f7a96', 0.2, 0.44, 0, 1.2); }
 
 // 마당 가구 놓기: 큰 탁자(피크닉 테이블) · 동그란 탁자 + 의자 셋 · 낮은 탁자 + 릴렉스 체어 둘 · 통나무 벤치 · 혼자 앉는 자리 몇 곳
 function yardSeats(g, seats) {
@@ -366,7 +374,7 @@ export function buildShore(loc) {
   const sx = loc.id === 'forest' ? 6 : -5, stonePts = [];
   for (let i = 0; i < 6; i++) {
     const z = loc.id === 'forest' ? 8.5 + i * 1.6 : sz + 0.9 + i * 1.5, x = sx + (loc.id === 'forest' ? Math.sin(i) * 0.4 : Math.sin(i * 1.3) * 0.5);
-    if (loc.id !== 'forest') { const st = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 0.35, 9), mat('#9d968a')); st.position.set(x, wy - 0.05, z); st.scale.z = 0.8; st.castShadow = st.receiveShadow = true; w.group.add(st); }
+    if (loc.id === 'river') { const st = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 0.35, 9), mat('#9d968a')); st.position.set(x, wy - 0.05, z); st.scale.z = 0.8; st.castShadow = st.receiveShadow = true; w.group.add(st); }
     stonePts.push(new THREE.Vector3(x, loc.id === 'forest' ? -0.05 : wy + 0.13, z));
   }
   // 모래성(바다) · 돌탑(계곡 · 강)이 쌓이는 자리
@@ -460,7 +468,7 @@ export function buildCampKitchen(loc) {
     box(tbl, '#9a7048', 5.2, 0.08, 1.0, 0, 0.76, 0);
     for (const x of [-2.2, 2.2]) for (const z of [-0.35, 0.35]) box(tbl, '#6e4c30', 0.08, 0.76, 0.08, x, 0.38, z);
     // 식탁 위 컵 · 양념통 · 랜턴
-    for (let i = 0; i < 4; i++) box(tbl, ['#f2ece0', '#e8b54a', '#a33b2a', '#2f7a96'][i], 0.08, 0.12, 0.08, -1.8 + i * 1.2, 0.86, (i % 2 ? 0.2 : -0.2));
+    for (let i = 0; i < 4; i++) mug(tbl, ['#f2ece0', '#e8b54a', '#a33b2a', '#2f7a96'][i], -1.8 + i * 1.2, 0.85, (i % 2 ? 0.2 : -0.2));
     const lamp = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, 0.22, 10), new THREE.MeshStandardMaterial({ color: '#ffe0a0', emissive: '#ffb74a', emissiveIntensity: 1.2 })); lamp.position.set(0, 0.92, 0); tbl.add(lamp);
     blockers.push({ minX: -2.6, maxX: 2.6, minZ: tz - 3 - 0.5, maxZ: tz - 3 + 0.5 });
     for (const s of [-1, 1]) for (let i = 0; i < 4; i++) {
@@ -479,9 +487,10 @@ export function buildCampKitchen(loc) {
     spawn: new THREE.Vector3(0, 0, 6), spawnRot: Math.PI,
     camDist: 6, camRise: 0.2, camLookY: 1.3,   // 지붕 아래에서 식탁 · 조리대가 보이게 낮게
     blockers,
-    walkPath: null,
     // 요리 · 고기 굽기는 버너 앞, 설거지는 개수대 앞, 청소는 분리수거함 앞
-    spots: { cook: { x: 1.2, z: -5.55, rot: Math.PI, jx: 0.3 }, grill: { x: 2.8, z: -5.55, rot: Math.PI, jx: 0.3 }, wash: { x: -2.7, z: -5.55, rot: Math.PI, jx: 2.4 }, sweep: { x: 4.2, z: -2.15, rot: Math.PI / 2, jx: 0 } },
+    spots: { cook: { x: 1.2, z: -5.55, rot: Math.PI, jx: 0.3, sideCam: true }, grill: { x: 2.8, z: -5.55, rot: Math.PI, jx: 0.3, sideCam: true }, wash: { x: -2.7, z: -5.55, rot: Math.PI, jx: 2.4, sideCam: true }, sweep: { x: 4.2, z: -2.15, rot: Math.PI / 2, jx: 0 } },
+    // 산책: 취사장 지붕 둘레를 한 바퀴
+    walkPath: Array.from({ length: 24 }, (_, k) => { const a = (-2 * Math.PI * k) / 24; return new THREE.Vector3(7.5 * Math.sin(a), 0, -3 + 6 * Math.cos(a)); }),
   };
 }
 function fairy(g, x0, x1, y, z) {
