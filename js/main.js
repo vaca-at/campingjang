@@ -308,7 +308,7 @@ function handleRemoteState(peer, d) {
     r.appliedA = d.a;
     if (d.a === 'fireworks' && S.mode === 'world' && d.s === S.scene) launchFirework(scene, new THREE.Vector3(d.p[0], 0, d.p[1]));
     // 가까이(15m 안)에서 누가 손을 흔들면 알려 줘요
-    if (d.a === 'wave' && S.mode === 'world' && d.s === S.scene && S.scene !== 'room' && S.me && Math.hypot(d.p[0] - S.me.group.position.x, d.p[1] - S.me.group.position.z) < 15) toast(`👋 ${d.n}님이 손을 흔들었어요`);
+    if (d.a === 'wave' && S.mode === 'world' && d.s === S.scene && S.scene !== 'room' && S.me && Math.hypot(d.p[0] - S.me.group.position.x, d.p[1] - S.me.group.position.z) < 15) toast(d.wt ? `👋 ${d.n}님이 ${d.wt === S.profile.name ? '나' : `${d.wt}님`}에게 손을 흔들었어요` : `👋 ${d.n}님이 손을 흔들었어요`);
     if (d.a) { r.av.action = d.a; r.av.actionT = d.at || 0; r.av.bowCount = 0; }
     else if (ACTIONS.find((a) => a.id === r.av.action)?.loop) r.av.stop();
   }
@@ -347,6 +347,7 @@ function pushState(force = false) {
     seat: S.seat, y: S.seat != null ? g.position.y : 0,
     a: S.me.action, at: S.me.action ? Math.round(S.me.actionT * 10) / 10 : 0,
     f: S.faceId && Date.now() - S.faceAt < 4000 ? S.faceId : null,
+    wt: S.me.action === 'wave' ? S.waveTo || null : null,   // 손 흔든 상대 이름
   };
   const key = JSON.stringify({ ...st, at: 0 });
   const now = performance.now();
@@ -501,7 +502,15 @@ function doAction(id) {
   }
   S.target = null;
   S.walking = false;
+  // 손 흔들기: 4m 안에 사람이 있으면 그쪽을 바라보고 인사해요 (콕 찌른 사람이 있으면 그 사람에게)
+  if (id === 'wave' && S.me.action !== 'wave') {
+    const me = S.me.group.position, cand = S.pokeTo || [...S.remotes.values()].filter((r) => r.st.s === S.scene && r.av.group.visible).map((r) => [r, r.av.group.position.distanceTo(me)]).filter(([, d]) => d < 4).sort((a, b) => a[1] - b[1])[0]?.[0];
+    S.pokeTo = null;
+    S.waveTo = cand ? cand.st.n : null;
+    if (cand) { const p = cand.av.group.position; S.me.group.rotation.y = Math.atan2(p.x - me.x, p.z - me.z); }
+  }
   const on = S.me.play(id);
+  if (on && id === 'wave' && S.waveTo) toast(`👋 ${S.waveTo}님에게 손을 흔들었어요`);
   if (on) startSfx(id);   // 시작할 때만 짧게 한 번
   // 내 자리 낮잠: 침대 · 침낭 위로 옮겨 눕고, 다른 동작을 하면 다시 자리에 앉아요
   if (S.scene === 'room' && S.active.napSpot) {
@@ -841,11 +850,11 @@ function openRecords() {
   const t = store.get(`rec:${today()}`, {});
   const m = (s) => fmtLong(s || 0);
   const dex = loadDex(), got = Object.values(dex).reduce((n, k) => n + Object.keys(k || {}).length, 0);
-  const tiles = [['캠프 마당', m(t.in)], ['물가', m(t.out)], ['취사장', m(t.meal)], ['내 자리', m(t.room)], ['불꽃놀이', `${t.fireworks || 0}번`], ['도감', `${got}가지`]];
+  const tiles = [['마당', m(t.in)], ['물가', m(t.out)], ['내 텐트', m(t.room)], ['취사장', m(t.meal)], ['불꽃놀이', `${t.fireworks || 0}번`], ['도감', `${got}가지`]];
   $('#record-today').innerHTML = `<p class="muted small">오늘 ${today()}</p>` + tiles.map(([k, v]) => `<div class="stat"><small>${k}</small><b>${v}</b></div>`).join('');
   const days = store.get('recdays', []).slice(-14).reverse();
   const mm = (s) => Math.round((s || 0) / 60);
-  $('#record-table').innerHTML = `<thead><tr><th>날짜</th><th>마당</th><th>물가</th><th>취사장</th><th>내 자리</th><th>불꽃</th></tr></thead><tbody>` +
+  $('#record-table').innerHTML = `<thead><tr><th>날짜</th><th>마당</th><th>물가</th><th>취사장</th><th>내 텐트</th><th>불꽃</th></tr></thead><tbody>` +
     (days.length ? days.map((d) => { const r = store.get(`rec:${d}`, {}); return `<tr><td>${d.slice(5)}</td><td>${mm(r.in)}분</td><td>${mm(r.out)}분</td><td>${mm(r.meal)}분</td><td>${mm(r.room)}분</td><td>${r.fireworks || 0}</td></tr>`; }).join('')
       : '<tr><td colspan="6">아직 기록이 없어요. 머무는 동안 10초마다 쌓여요.</td></tr>') + '</tbody>';
   renderGrass($('#record-grass'), (d) => { const r = store.get(`rec:${d}`, {}); return ((r.out || 0) + (r.in || 0) + (r.meal || 0) + (r.room || 0)) / 60; }, '머문 시간');
@@ -1206,6 +1215,20 @@ canvas.addEventListener('pointerup', (e) => {
   ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
   ray.setFromCamera(ndc, camera);
   const w = S.active;
+  // 다른 사람을 콕 누르면 그 사람 앞까지 가서 손을 흔들어요
+  const hitP = ray.intersectObjects(players.children, true)[0];
+  if (hitP && S.scene !== 'room') {
+    let g = hitP.object; while (g && g.parent !== players) g = g.parent;
+    const r = [...S.remotes.values()].find((x) => x.av.group === g);
+    if (r) {
+      stopWalk(); standUp();
+      const p = r.av.group.position, me = S.me.group.position, d = p.distanceTo(me);
+      const go = () => { S.pokeTo = r; if (S.me.action === 'wave') S.me.stop(); doAction('wave'); };
+      if (d > 2.2) S.target = { pos: p.clone().add(me.clone().sub(p).setY(0).normalize().multiplyScalar(1.6)), onArrive: go };
+      else go();
+      return;
+    }
+  }
   for (const h of ray.intersectObjects(w.group.children, true)) {
     const o = h.object;
     if (o.userData.seats) {

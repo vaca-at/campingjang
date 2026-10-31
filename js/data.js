@@ -103,9 +103,9 @@ export function dressFor(look) { return look && (look.outfit === 'wear_beige' ||
 // 하루 활동. scene: 그 활동을 하러 가는 곳
 // 장소 줄 순서: 법당 → 내 방 → 마당 → 공양간
 export const SCENES = {
-  in: { name: '캠프 마당', cap: '모닥불 둘레에 모두 모여요' },
-  room: { name: '내 자리', cap: '텐트 · 캠핑카 · 카바나 안' },
-  out: { name: '물가', cap: '낚시 · 곤충 잡기' },
+  in: { name: '마당', cap: '모닥불 둘레에 모두 모여요' },
+  out: { name: '물가', cap: '낚시 · 물놀이' },
+  room: { name: '내 텐트', cap: '텐트 · 캠핑카 · 카바나 안' },
   meal: { name: '취사장', cap: '요리 · 설거지' },
 };
 
@@ -151,7 +151,7 @@ export const ACTIONS = [
   { id: 'fish', name: '낚시', cap: '낚싯대를 드리우고 기다리기', verb: '낚시를 시작했어요', loop: true, seat: true },
   { id: 'bugs', name: '곤충 잡기', cap: '잠자리채를 휘둘러요', verb: '곤충을 잡으러 나섰어요', loop: true },
   { id: 'skip', name: '물수제비', cap: '납작한 돌을 던져요', verb: '물수제비를 떴어요', dur: 2.2 },
-  { id: 'walk', name: '산책', cap: '마당 둘레를 천천히 걷기', verb: '산책을 시작했어요' },
+  { id: 'walk', name: '산책(자동)', cap: '마당 둘레를 천천히 걷기', verb: '산책을 시작했어요' },
   { id: 'splash', name: '물놀이', cap: '물 튀기며 놀기', verb: '물놀이를 시작했어요', loop: true },
   // 취사장
   { id: 'cook', name: '요리하기', cap: '코펠에 휘휘 저어요', verb: '요리를 시작했어요', loop: true },
@@ -197,7 +197,7 @@ export const SCENE_ACTIONS = {
 };
 // 마당 · 물가 어디서나 하는 동작: 오른쪽 세로 단추로 (아래 동작 줄과 따로)
 // 마당 · 물가 · 취사장 오른쪽에 늘 같은 네 가지 (가장 많이 쓰는 것)
-const FAVORITES = ['wave', 'walk', 'bugs', 'kite'];
+const FAVORITES = ['wave', 'kite', 'bugs', 'walk'];
 export const COMMON_ACTIONS = { in: FAVORITES, out: FAVORITES, meal: FAVORITES };
 export const COMMON_SCENES = Object.keys(COMMON_ACTIONS);
 // 장소에 따라 이름만 다르게 보이는 동작
