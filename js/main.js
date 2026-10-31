@@ -14,7 +14,7 @@ import { Avatar } from './avatar.js';
 import { buildInterior, buildExterior, buildMealHall, buildRoom, buildBoriamView, buildLantern, paintView, PAGODAS, setPanorama } from './world.js';
 import { Net, preloadNet } from './net.js';
 import { hangScroll, stopScrolls } from './scrolls.js';
-import { setSound, sound, moktak, bowl, coin, bigBell, sfx, startSfx, setAmbience, TRACKS, setMusic, music } from './audio.js';
+import { setSound, sound, moktak, bowl, coin, bigBell, sfx, startSfx, setAmbience, trackFolder, TRACKS, setMusic, music } from './audio.js';
 import { buildCampsite, buildShore, buildShelterRoom, buildCampKitchen, yardBase, SHELTERS, shelterOf } from './camp.js';
 import { addPhoto, listPhotos, removePhoto } from './album.js';
 import { launchFirework, stepFireworks, addToDex, renderDex, loadDex } from './fun.js';
@@ -1940,7 +1940,9 @@ function bodySvg(B) {
 const PET_GROUP = { ai: 1, claude: 1, drone: 1, coffee: 2, icecoffee: 2, book: 2, laptop: 2, tablet: 2, none: 4 };
 const petGroup = (p) => (p.season ? 3 : PET_GROUP[p.id] ?? 0);
 
+let musicFolder = null;   // 처음 열면 지금 듣는 곡이 있는 폴더
 function renderMusic() {
+  musicFolder ||= trackFolder(music() || 'sunrise');
   // 카드: 왼쪽 동그란 그림 · 이름과 설명 · 오른쪽 위 '녹음/합성' 표시. 고른 곡은 소리 막대가 움직여요
   const ICON = {
     campfire: '<path d="M12 3c2 3 5 5 5 9a5 5 0 0 1-10 0c0-2 1-3 2-4 0 2 1 3 2 3 0-3-1-5 1-8z"/><path d="M5 21l14-3M5 18l14 3"/>',
@@ -1952,7 +1954,10 @@ function renderMusic() {
     rain: '<path d="M3 12l9-8 9 8z"/><path d="M8 16v2M12 15v4M16 16v2"/>',
     rec: '<path d="M4 12h2M8 8v8M12 5v14M16 9v6M20 11v2"/>',
   };
-  $('#music-list').innerHTML = TRACKS.filter((t) => !t.hidden).map((t, i) => {
+  const FOLDERS = [['music', '음악', '연주곡 · 8비트'], ['nature', '자연 소리', '모닥불 · 풀벌레 · 새 · 물 · 파도 · 비']];
+  const count = (f) => TRACKS.filter((t) => !t.hidden && trackFolder(t.id) === f).length;
+  $('#music-folders').innerHTML = FOLDERS.map(([f, name, cap]) => `<button type="button" data-folder="${f}" aria-selected="${musicFolder === f}"><b>${name}</b><small>${cap} · ${count(f)}곡</small>${trackFolder(music() || '') === f && music() ? '<i class="eq"><s></s><s></s><s></s></i>' : ''}</button>`).join('');
+  $('#music-list').innerHTML = TRACKS.filter((t) => !t.hidden && trackFolder(t.id) === musicFolder).map((t, i) => {
     const on = music() === t.id, kind = ICON[t.id] ? t.id : 'rec', rec = t.src || t.list;
     return `<button class="music-card" data-music="${t.id}" aria-pressed="${on}">
       <span class="mc-ico"><svg viewBox="0 0 24 24" aria-hidden="true">${ICON[kind]}</svg></span>
@@ -1961,6 +1966,7 @@ function renderMusic() {
     </button>`;
   }).join('');
 }
+$('#music-folders').addEventListener('click', (e) => { const b = e.target.closest('[data-folder]'); if (b) { musicFolder = b.dataset.folder; renderMusic(); } });
 function pickMusic(id) {
   store.set('music2', id);
   if (!sound.on) { setSound(true); store.set('muted', false); syncSoundBtn(); }

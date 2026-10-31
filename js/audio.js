@@ -175,6 +175,9 @@ export function sfx(kind, vol = 1, arg = 0) {
 // 곡마다 step(st, at, out) 이 한 박을 out 에 예약하고 다음 박까지 남은 초를 돌려줘요.
 // src 가 있는 곡은 실제 녹음 파일을 처음 고를 때 한 번 받아서 끝없이 이어 틀어요.
 // list 가 있는 곡은 그 녹음들을 차례로 이어 틀어요. 맨 앞 싱잉볼이 기본 곡
+// 폴더: 음악(연주곡 · 8비트) / 자연 소리(모닥불 · 풀벌레 · 새 · 물 · 바다 · 비)
+export const MUSIC_IDS = ['guitar', 'sunrise', 'aguitar', 'breeze', 'relax', 'blues', 'harmonica', 'chip'];
+export const trackFolder = (id) => (MUSIC_IDS.includes(id) ? 'music' : 'nature');
 export const TRACKS = [
   { id: 'campfire', name: '타닥타닥 모닥불', cap: '모닥불', src: 'assets/audio/campfire.m4a', by: '한국저작권위원회 · 공유마당 CC BY' },
   { id: 'night', name: '모닥불 + 풀벌레', cap: '이어 듣기 · 모닥불 → 귀뚜라미 → 계곡', list: ['campfire', 'crickets', 'stream'] },
