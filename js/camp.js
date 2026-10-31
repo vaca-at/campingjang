@@ -356,13 +356,17 @@ export function buildCampsite(loc) {
 export function buildShore(loc) {
   const w = buildWaterside(loc), sz = w.bounds.maxZ;
   const seats = [];
-  const chairs = loc.id === 'sea'
-    ? [[-7.7, 8.6, '#e2603d'], [-6.3, 8.6, '#f4f1ea'], [8.6, 9.1, '#2f7a96']]
-    : [[-2.6, sz - 1.2, '#3f6b55'], [0, sz - 1, '#c9822a'], [2.6, sz - 1.2, '#2f7a96']];
-  chairs.forEach(([x, z, c], i) => {
-    const ch = loc.id === 'sea' ? beachChair(c) : campChair(c);
+  // 물을 바라보는 자리: 앞줄은 의자(바다는 비치 체어), 뒷줄은 통나무 벤치 둘씩. 모래성 · 징검다리 · 카약 자리는 비워 둬요
+  const COLORS = ['#e2603d', '#f4f1ea', '#2f7a96', '#e8b54a', '#3f6b55', '#c9822a', '#6b5a9a', '#a33b2a'];
+  const front = loc.id === 'sea'
+    ? [[-18.5, 8.6], [-17.1, 8.6], [-7.7, 8.6], [-6.3, 8.6], [7.6, 9.1], [9, 9.1], [17.4, 8.9], [18.8, 8.9]]
+    : [-15, -12.5, -8.5, -1.6, 2.6, 9.5, 12, 14.5].map((x) => [x, sz - 1.1]);
+  front.forEach(([x, z], i) => {
+    const ch = loc.id === 'sea' ? beachChair(COLORS[i % COLORS.length]) : campChair(COLORS[i % COLORS.length]);
     addSeat(w.group, seats, ch, x, z, 0, loc.id === 'sea' ? 0.3 : 0.4);
   });
+  const backZ = loc.id === 'sea' ? 5.6 : sz - 3.6;
+  for (const cx of [-10, 0, 10]) for (const lx of [-0.5, 0.5]) addSeat(w.group, seats, logSeat(), cx + lx, backZ, 0, 0.45);
   const bucket = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.22, 0.4, 14), mat('#2f7a96')); if (loc.id === 'sea') bucket.position.set(-5.2, 0.2, 8.4); else bucket.position.set(1.3, 0.2, sz - 0.4); bucket.castShadow = true; w.group.add(bucket);
   if (loc.id === 'river') { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 1.8, 8), mat('#5a3a24')); post.position.set(-4.2, 0.9, sz - 1); w.group.add(post); lantern(w.group, -4.2, 1.85, sz - 1); }
   // 물가에도 해먹 · 별자리 매트, 물가를 따라 도는 산책길
