@@ -165,6 +165,28 @@ function campChair(color) {
   return g;
 }
 
+// 해먹: 기둥 둘 사이 (x 방향으로 걸려 있어요). 막는 자리(기둥 두 개)를 돌려줘요
+function hammock(group, cx, cz) {
+  const ham = new THREE.Group(); ham.position.set(cx, 0, cz); group.add(ham);
+  for (const x of [-2.1, 2.1]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 2.0, 10), mat('#6e4c30')); p.position.set(x, 1.0, 0); p.castShadow = true; ham.add(p); }
+  const c = document.createElement('canvas'); c.width = 64; c.height = 8; const x = c.getContext('2d');
+  for (let i = 0; i < 8; i++) { x.fillStyle = ['#e2603d', '#f4f1ea', '#2f7a96', '#e8b54a'][i % 4]; x.fillRect(i * 8, 0, 8, 8); }
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  const cloth = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 3.0, 16, 1, true, Math.PI * 0.6, Math.PI * 0.8), new THREE.MeshStandardMaterial({ color: '#ffffff', side: THREE.DoubleSide, map: tex }));
+  cloth.rotation.z = Math.PI / 2; cloth.position.set(0, 1.15, 0); cloth.scale.set(1, 1, 0.9); cloth.castShadow = true; ham.add(cloth);
+  for (const s of [-1, 1]) { const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.75, 6), mat('#d8d0c0')); rope.position.set(s * 1.75, 1.45, 0); rope.rotation.z = s * 1.0; ham.add(rope); }
+  return [{ minX: cx - 2.3, maxX: cx - 1.9, minZ: cz - 0.3, maxZ: cz + 0.3 }, { minX: cx + 1.9, maxX: cx + 2.3, minZ: cz - 0.3, maxZ: cz + 0.3 }];
+}
+const hammockSpot = (cx, cz) => ({ x: cx - 0.8, z: cz, rot: -Math.PI / 2, y: 0.78 });
+// 별자리 찾기 매트 (누울 때만 펴져요)
+function starMat(group, x, z) {
+  const m = new THREE.Group(); m.position.set(x, 0, z); group.add(m);
+  const pad = new THREE.Mesh(new RoundedBoxGeometry(1.0, 0.05, 2.0, 2, 0.02), mat('#2f3e66')); pad.position.y = 0.03; m.add(pad);
+  const pil = new THREE.Mesh(new RoundedBoxGeometry(0.5, 0.1, 0.3, 3, 0.04), mat('#f2ece0')); pil.position.set(0, 0.09, -0.8); m.add(pil);
+  m.scale.z = 0.01; m.visible = false;
+  return m;
+}
+
 // ───────── 마당 곳곳 앉을 자리 ─────────
 // 자리 하나마다 모양(g)에 seatId 를 달아 seats 에 넣어요. face: 앉은 사람이 바라보는 쪽(y 회전), y: 엉덩이 높이
 function addSeat(root, seats, g, x, z, face, y = 0.4) {
@@ -279,13 +301,7 @@ export function buildCampsite(loc) {
   const blockM = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 0.5, 12), mat('#7a5232')); blockM.position.y = 0.25; blockM.castShadow = true; pile.add(blockM);
   for (let r = 0; r < 3; r++) for (let i = 0; i < 5 - r; i++) { const lg = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 1.0, 8), mat(i % 2 ? '#8a5a34' : '#6e4a2c')); lg.rotation.x = Math.PI / 2; lg.position.set(-1.3 + i * 0.28 + r * 0.14, 0.13 + r * 0.24, -0.4); lg.castShadow = true; pile.add(lg); }
   yardBlockers.push({ minX: -7.8, maxX: -5.8, minZ: -7.0, maxZ: -5.8 });
-  // 해먹: 기둥 둘 사이 (x 방향으로 걸려 있어요)
-  const ham = new THREE.Group(); ham.position.set(-12, 0, -10); w.group.add(ham);
-  for (const x of [-2.1, 2.1]) { const p = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 2.0, 10), mat('#6e4c30')); p.position.set(x, 1.0, 0); p.castShadow = true; ham.add(p); }
-  const cloth = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 3.0, 16, 1, true, Math.PI * 0.6, Math.PI * 0.8), new THREE.MeshStandardMaterial({ color: '#e2603d', side: THREE.DoubleSide, map: (() => { const c = document.createElement('canvas'); c.width = 64; c.height = 8; const x = c.getContext('2d'); ['#e2603d', '#f4f1ea', '#2f7a96', '#f4f1ea', '#e8b54a', '#f4f1ea'].forEach((col, i) => { x.fillStyle = col; x.fillRect(0, 0, 64, 8); }); for (let i = 0; i < 8; i++) { x.fillStyle = ['#e2603d', '#f4f1ea', '#2f7a96', '#e8b54a'][i % 4]; x.fillRect(i * 8, 0, 8, 8); } const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })() }));
-  cloth.rotation.z = Math.PI / 2; cloth.position.set(0, 1.15, 0); cloth.scale.set(1, 1, 0.9); cloth.castShadow = true; ham.add(cloth);
-  for (const s of [-1, 1]) { const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.75, 6), mat('#d8d0c0')); rope.position.set(s * 1.75, 1.45, 0); rope.rotation.z = s * 1.0; ham.add(rope); }
-  yardBlockers.push({ minX: -14.3, maxX: -13.9, minZ: -10.3, maxZ: -9.7 }, { minX: -10.1, maxX: -9.7, minZ: -10.3, maxZ: -9.7 });
+  yardBlockers.push(...hammock(w.group, -12, -10));
   // 배드민턴 · 캐치볼 마당: 하얀 선과 낮은 그물 (양쪽 끝에 서요)
   const court = new THREE.Group(); court.position.set(12, 0.03, 1); w.group.add(court);
   const line = mat('#f4f1ea');
@@ -294,11 +310,7 @@ export function buildCampsite(loc) {
   const netM = new THREE.Mesh(new THREE.PlaneGeometry(4.8, 0.6), new THREE.MeshStandardMaterial({ color: '#f4f4f4', transparent: true, opacity: 0.45, side: THREE.DoubleSide })); netM.position.set(0, 1.25, 0); court.add(netM);
   const tape = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.05, 0.02), line); tape.position.set(0, 1.55, 0); court.add(tape);
   yardBlockers.push({ minX: 9.4, maxX: 14.6, minZ: 0.85, maxZ: 1.15 });
-  // 별자리 찾기 매트 (누울 때만 펴져요)
-  const mat2 = new THREE.Group(); mat2.position.set(6, 0, -4.9); w.group.add(mat2);
-  const pad = new THREE.Mesh(new RoundedBoxGeometry(1.0, 0.05, 2.0, 2, 0.02), mat('#2f3e66')); pad.position.y = 0.03; mat2.add(pad);
-  const pil = new THREE.Mesh(new RoundedBoxGeometry(0.5, 0.1, 0.3, 3, 0.04), mat('#f2ece0')); pil.position.set(0, 0.09, -0.8); mat2.add(pil);
-  mat2.scale.z = 0.01; mat2.visible = false;
+  const mat2 = starMat(w.group, 6, -4.9);
   const baseUpdate = w.update;
   return {
     ...w,
@@ -310,7 +322,7 @@ export function buildCampsite(loc) {
     // 동작마다 걸어가서 하는 자리 (x, z, 바라보는 쪽, 옆으로 흩어지는 폭)
     spots: {
       chop: { x: -6.2, z: -5.3, rot: Math.PI }, fireworks: { x: 0, z: 11, rot: Math.PI, jx: 3 },
-      hammock: { x: -12.8, z: -10, rot: -Math.PI / 2, y: 0.78 },
+      hammock: hammockSpot(-12, -10),
       stargaze: { x: 6, z: -4.1, rot: 0, y: 0.06 },
       // 코트 양쪽 끝: 비어 있는 쪽으로 가요
       badminton: [{ x: 12, z: -2.5, rot: 0 }, { x: 12, z: 4.5, rot: Math.PI }],
@@ -338,7 +350,15 @@ export function buildShore(loc) {
   });
   const bucket = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.22, 0.4, 14), mat('#2f7a96')); if (loc.id === 'sea') bucket.position.set(-5.2, 0.2, 8.4); else bucket.position.set(1.3, 0.2, sz - 0.4); bucket.castShadow = true; w.group.add(bucket);
   if (loc.id === 'river') { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 1.8, 8), mat('#5a3a24')); post.position.set(-4.2, 0.9, sz - 1); w.group.add(post); lantern(w.group, -4.2, 1.85, sz - 1); }
-  return { ...w, seats, camDist: 7, camRise: 0.3, camLookY: 1.2, spots: { skip: { x: 0, z: sz - 0.1, rot: 0, jx: 4 }, splash: { x: 0, z: sz - 0.1, rot: 0, jx: 4 } } };
+  // 물가에도 해먹 · 별자리 매트, 물가를 따라 도는 산책길
+  const hx = loc.id === 'sea' ? -12 : 12, hz = loc.id === 'sea' ? 4.5 : sz - 4;
+  const blockers = hammock(w.group, hx, hz);
+  const sm = starMat(w.group, loc.id === 'sea' ? 14 : -10, sz - 3.6);
+  const walkPath = Array.from({ length: 28 }, (_, k) => { const a = (-2 * Math.PI * k) / 28; return new THREE.Vector3(14 * Math.sin(a), 0, sz - 4.2 + 3.2 * Math.cos(a)); });
+  return { ...w, seats, blockers, walkPath, camDist: 7, camRise: 0.3, camLookY: 1.2,
+    waterY: { forest: -0.32, sea: -0.35, river: -0.45 }[loc.id],
+    beddings: { stargaze: sm },
+    spots: { skip: { x: 0, z: sz - 0.1, rot: 0, jx: 4 }, splash: { x: 0, z: sz - 0.1, rot: 0, jx: 4 }, hammock: hammockSpot(hx, hz), stargaze: { x: sm.position.x, z: sz - 2.8, rot: 0, y: 0.06 } } };
 }
 function beachChair(color) {   // 바닷가 접이식 비치 체어 (줄무늬 천)
   const g = relaxChair(color);

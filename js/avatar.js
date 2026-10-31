@@ -184,6 +184,15 @@ function actionPose(action, t, base, seated) {
       const fl = bump(t % 2.5, 1.4, 1.7, 1.9, 2.2);
       return mix(base, { aR: [-1.0 - fl * 0.5, 0.25 - fl * 0.5], aL: [-0.5, -0.2], head: 0.3, hip: 0.12 }, ease(t / 0.4));
     }
+    case 'stretch': {   // 8초에 한 번: 두 팔 번쩍 기지개 → 왼쪽 옆구리 → 오른쪽 옆구리 → 앞으로 숙이기
+      const u = t % 8, up = bump(u, 0.2, 0.8, 1.6, 2.0), l = bump(u, 2.0, 2.5, 3.3, 3.8), r = bump(u, 3.8, 4.3, 5.1, 5.6), fold = bump(u, 5.6, 6.2, 7.2, 7.8);
+      const arms = Math.max(up, l, r);
+      return mix(base, { aL: [-2.9 * arms - 1.2 * fold, -0.15 - 0.5 * r + 0.2 * l], aR: [-2.9 * arms - 1.2 * fold, 0.15 + 0.5 * l - 0.2 * r], hip: 0.9 * fold, head: -0.3 * up + 0.4 * fold }, ease(t / 0.5));
+    }
+    case 'dance': {   // 무릎 들썩 + 팔을 번갈아 위아래로, 4박마다 한 번 박수
+      const b = Math.sin(t * 7), c = Math.sin(t * 3.5);
+      return mix(base, { y: -0.04 * Math.abs(b), aL: [-1.4 - c * 1.2, -0.5], aR: [-1.4 + c * 1.2, 0.5], lL: [0.25 * Math.max(0, b), 0], lR: [0.25 * Math.max(0, -b), 0], hip: 0.08 * Math.abs(b), head: 0.15 * c }, ease(t / 0.4));
+    }
     case 'nap':   // 누워서 자기: 팔다리를 쭉 펴고 (몸 전체를 눕히는 건 update 에서)
       return mix(base, { y: 0, hip: 0, head: 0.05 + Math.sin(t * 1.1) * 0.02, lL: [0, 0.04], lR: [0, -0.04], aL: [-0.12, -0.12], aR: [-0.12, 0.12] }, ease(t / 0.8));
     case 'guitar': {   // 왼손은 넥, 오른손으로 둥가둥가
@@ -623,7 +632,7 @@ export class Avatar {
     // 캠핑 소품 (오른손에 달아요)
     const hand = (g) => { g.position.set(0, this.handY, 0.06); g.visible = false; this.armR.add(g); return g; };
     const skewer = new THREE.Group(); skewer.add(mesh(G.cyl, mat('#8a6a3a'), 0.015, 0.9, 0.015, 0, -0.42, 0.08)); skewer.add(mesh(G.sphere, mat('#f4ead8'), 0.06, 0.07, 0.06, 0, -0.86, 0.1));
-    skewer.children[0].rotation.x = 0.35; skewer.children[1].position.set(0, -0.84, 0.36);
+    skewer.children[0].rotation.x = -0.6; skewer.children[1].position.set(0, -0.8, 0.33);   // 마시멜로가 꼬치 끝에 꽂히게
     const axe = new THREE.Group(); axe.add(mesh(G.cyl, mat('#8a6a3a'), 0.025, 0.7, 0.025, 0, -0.3, 0)); axe.add(mesh(G.box, mat('#9aa0a6', { metalness: 0.6, roughness: 0.4 }), 0.04, 0.14, 0.2, 0, -0.62, 0.08));
     const rod = new THREE.Group(); const rp = mesh(G.cyl, mat('#2a2a2a'), 0.012, 1.8, 0.012, 0, -0.9, 0); rp.rotation.x = -0.5; rp.position.set(0, -0.8, 0.4); rod.add(rp); rod.add(mesh(G.cyl, mat('#e8e8e8'), 0.003, 1.2, 0.003, 0, -1.25, 1.2));
     const net = new THREE.Group(); net.add(mesh(G.cyl, mat('#c9a24a'), 0.012, 1.1, 0.012, 0, -0.55, 0)); const ring = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.012, 6, 20), mat('#ddd')); ring.position.set(0, -1.15, 0); net.add(ring);
@@ -762,6 +771,7 @@ export class Avatar {
     const lieT = ['nap', 'hammock', 'stargaze'].includes(this.action) ? 1 : 0;
     this.lieK = lerp(this.lieK || 0, lieT, Math.min(1, dt * 3));
     this.body.rotation.x = -this.lieK * Math.PI / 2;
+    this.body.rotation.y = this.action === 'dance' ? Math.sin(performance.now() / 260) * 0.35 : 0;   // 춤: 몸을 좌우로 비틀기
     this.body.rotation.z = this.action === 'hammock' ? Math.sin(performance.now() / 900) * 0.18 * this.lieK : 0;   // 해먹은 좌우로 흔들흔들
     this.body.position.y += this.lieK * 0.18;
     this.hips.rotation.x = p.hip;

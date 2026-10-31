@@ -112,6 +112,8 @@ export function sfx(kind, vol = 1, arg = 0) {
     case 'skip':   // 물수제비 퐁 · 퐁 · 퐁 · 풍덩
       for (let i = 0; i < 4; i++) slide(1100 - i * 120, 500, 0.07, { gain: (0.14 - i * 0.025) * v, at: i * (0.32 - i * 0.05) });
       noise(0.35, { freq: 1200, to: 300, gain: 0.15 * v, at: 1.05 }); break;
+    case 'plink':  // 물수제비 돌이 수면에 한 번 닿을 때 '퐁'
+      slide(1000 + arg * 60, 480, 0.07, { gain: 0.13 * v }); noise(0.12, { freq: 1600, to: 500, gain: 0.05 * v }); break;
     case 'sizzle': // 고기 뒤집으면 치익
       noise(0.9, { type: 'highpass', freq: 3500, gain: 0.1 * v, attack: 0.03 }); noise(0.5, { freq: 6000, q: 0.5, gain: 0.05 * v }); break;
     case 'bubble': // 코펠 보글보글

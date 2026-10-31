@@ -851,12 +851,58 @@ function stepPlay(dt) {
       m.visible = true;
     }
   }
+  // 물수제비: 던지는 순간(0.95초) 돌이 손을 떠나 수면 위를 통통 튀어요. 물장구: 손끝에서 물방울이 튀어요
+  const wy = S.active?.waterY;
+  if (wy != null) for (const [, av] of list) {
+    if (av.action === 'skip' && av.actionT > 0.95 && !av._skipped) { av._skipped = true; throwStone(av, wy); }
+    if (av.action !== 'skip') av._skipped = false;
+    if (av.action === 'splash') for (let k = 0; k < 3; k++) if (Math.random() < dt * 16) splashDrop(av, wy);
+  }
+  stepWater(dt);
   for (const [av, m] of flying) if (!seen.has(av)) { m.removeFromParent(); m.geometry.dispose(); flying.delete(av); }
   for (let i = bubbles.length - 1; i >= 0; i--) {
     const b = bubbles[i]; b.t += dt;
     b.s.position.addScaledVector(b.v, dt); b.v.y += dt * 0.05; b.s.position.x += Math.sin(b.t * 2 + b.ph) * dt * 0.3;
     b.s.material.opacity = Math.min(0.7, b.t * 2) * Math.max(0, 1 - b.t / 6);
     if (b.t > 6) { b.s.removeFromParent(); b.s.material.dispose(); bubbles.splice(i, 1); }
+  }
+}
+const stones = [], drops = [], ripples = [];
+function throwStone(av, wy) {
+  const f = new THREE.Vector3(Math.sin(av.group.rotation.y), 0, Math.cos(av.group.rotation.y));
+  const from = av.group.position.clone().add(new THREE.Vector3(0, 0.9, 0)).addScaledVector(f, 0.4);
+  const st = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.03, 10), new THREE.MeshStandardMaterial({ color: '#8f877a' })); st.position.copy(from); scene.add(st);
+  // 튀는 자리: 점점 짧고 낮게 (처음 한 번은 손에서 수면까지)
+  const hops = [], lens = [2.6, 3.0, 2.3, 1.7, 1.2, 0.8], hs = [0.4, 0.7, 0.45, 0.3, 0.18, 0.1];
+  let p = from.clone();
+  lens.forEach((L, i) => { const q = p.clone().addScaledVector(f, L); q.y = wy + 0.02; hops.push({ a: p.clone(), b: q, h: hs[i], d: 0.18 + L * 0.09 }); p = q; });
+  stones.push({ st, hops, i: 0, t: 0 });
+}
+function ripple(pos) {
+  const r = new THREE.Mesh(new THREE.RingGeometry(0.15, 0.22, 24), new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.8, depthWrite: false, side: THREE.DoubleSide }));
+  r.rotation.x = -Math.PI / 2; r.position.copy(pos).setY(pos.y + 0.01); scene.add(r); ripples.push({ r, t: 0 });
+}
+function splashDrop(av, wy) {
+  const f = new THREE.Vector3(Math.sin(av.group.rotation.y), 0, Math.cos(av.group.rotation.y));
+  const d = new THREE.Mesh(new THREE.SphereGeometry(0.05 + Math.random() * 0.04, 6, 4), new THREE.MeshStandardMaterial({ color: '#5fb0d8', emissive: '#bfe8ff', emissiveIntensity: 0.35, transparent: true, opacity: 0.9 }));
+  d.position.copy(av.group.position).addScaledVector(f, 0.7 + Math.random() * 0.4).add(new THREE.Vector3((Math.random() - 0.5) * 0.8, 0.5, 0)); scene.add(d);
+  drops.push({ d, v: f.clone().multiplyScalar(0.8 + Math.random() * 1.2).add(new THREE.Vector3((Math.random() - 0.5) * 1.2, 2 + Math.random() * 1.6, 0)), wy });
+  if (Math.random() < 0.3) ripple(av.group.position.clone().addScaledVector(f, 1.2).setY(wy));
+}
+function stepWater(dt) {
+  for (let i = stones.length - 1; i >= 0; i--) {
+    const s = stones[i], h = s.hops[s.i]; s.t += dt;
+    const u = Math.min(1, s.t / h.d);
+    s.st.position.lerpVectors(h.a, h.b, u); s.st.position.y += Math.sin(Math.PI * u) * h.h; s.st.rotation.y += dt * 20;
+    if (u >= 1) { ripple(h.b); sfx('plink', 0.7, s.i); s.i++; s.t = 0; if (s.i >= s.hops.length) { s.st.removeFromParent(); stones.splice(i, 1); } }
+  }
+  for (let i = drops.length - 1; i >= 0; i--) {
+    const p = drops[i]; p.v.y -= 9 * dt; p.d.position.addScaledVector(p.v, dt);
+    if (p.d.position.y < p.wy) { p.d.removeFromParent(); drops.splice(i, 1); }
+  }
+  for (let i = ripples.length - 1; i >= 0; i--) {
+    const r = ripples[i]; r.t += dt; r.r.scale.setScalar(1 + r.t * 5); r.r.material.opacity = 0.8 * (1 - r.t / 1.4);
+    if (r.t > 1.4) { r.r.removeFromParent(); r.r.material.dispose(); ripples.splice(i, 1); }
   }
 }
 function spawnBubble(av) {
@@ -1601,7 +1647,7 @@ function loop() {
 const ACT_SFX = {
   chop: [2, 1.1, 'chop'], fish: [7, 5.8, 'cast'], bugs: [Math.PI / 3.2, 0.2, 'swish'], splash: [Math.PI / 4, 0.3, 'splash'],
   grill: [2.5, 1.75, 'sizzle'], cook: [1.4, 0.6, 'bubble'], roast: [0.9, 0.3, 'crackle'], warm: [1.1, 0.5, 'crackle'],
-  guitar: [(2 * Math.PI) / 9, 0.1, 'strum'], skip: [999, 0.9, 'skip'], fireworks: [999, 0.3, 'firework'],
+  guitar: [(2 * Math.PI) / 9, 0.1, 'strum'], fireworks: [999, 0.3, 'firework'],
 };
 function soundFor(av, vol) {
   const c = ACT_SFX[av.action];

@@ -170,6 +170,8 @@ export const ACTIONS = [
   { id: 'catchball', name: '캐치볼', cap: '혼자면 공 띄우기, 같이 누르면 주고받기', verb: '캐치볼을 시작했어요', loop: true },
   { id: 'bubbles', name: '비눗방울', cap: '불면서 천천히 걷기', verb: '비눗방울을 불기 시작했어요', loop: true },
   { id: 'stargaze', name: '별자리 찾기', cap: '매트에 누워 밤하늘 보기', verb: '별자리를 찾기 시작했어요', loop: true },
+  { id: 'stretch', name: '스트레칭', cap: '기지개 켜고 옆구리 쭉', verb: '스트레칭을 시작했어요', loop: true },
+  { id: 'dance', name: '춤추기', cap: '음악에 맞춰 들썩들썩', verb: '춤추기 시작했어요', loop: true },
   { id: 'diary', name: '일기 쓰기', cap: '오늘 캠핑 한 줄 기록', verb: '일기를 쓰기 시작했어요', loop: true },
   { id: 'tea', name: '코코아', cap: '따뜻한 코코아 한 잔', verb: '코코아를 마시기 시작했어요', loop: true },
 ];
@@ -177,8 +179,8 @@ export const ACTIONS = [
 // 장소마다 아래 동작 줄에 나오는 다섯 가지 (숫자 키 1~5 순서). seat: 앉아야 하는 동작이라 자동으로 앉아요
 export const SCENE_ACTIONS = {
   in: ['wave', 'bugs', 'warm', 'roast', 'fireworks', 'hammock', 'badminton', 'catchball', 'bubbles', 'stargaze'],
-  room: ['nap', 'read', 'guitar', 'diary', 'tea'],
-  out: ['fish', 'bugs', 'skip', 'walk', 'splash'],
+  room: ['nap', 'read', 'guitar', 'tea', 'stretch', 'dance'],
+  out: ['fish', 'bugs', 'skip', 'splash', 'walk', 'hammock', 'bubbles', 'stargaze'],
   meal: ['cook', 'grill', 'eat', 'wash', 'sweep'],
 };
 // 장소에 따라 이름만 다르게 보이는 동작

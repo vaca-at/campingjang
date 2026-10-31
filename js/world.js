@@ -2282,7 +2282,11 @@ export function buildCampRoom(loc, kind) {
   return {
     group: g, floor, seats: [seat], exitDoor: null,
     spawn: seat.pos.clone(), spawnRot: 0, camRise, camLookY, napSpot, beddings: bedding ? { nap: bedding } : {},
-    spots: napSpot ? { nap: { x: napSpot.pos.x, z: napSpot.pos.z, rot: napSpot.rot } } : {},
+    spots: {
+      ...(napSpot ? { nap: { x: napSpot.pos.x, z: napSpot.pos.z, rot: napSpot.rot } } : {}),
+      // 스트레칭 · 춤은 넓은 쪽에 서서 (의자 · 침대에 가리지 않게)
+      ...(() => { const o = kind === 'cabana' ? { x: 0.4, z: 1.6, rot: Math.PI } : kind === 'minivan' || kind === 'motorhome' ? { x: 0.6, z: 0.1, rot: Math.PI } : { x: 0, z: kind === 'teepee' ? 0.5 : 1.0, rot: Math.PI }; return { stretch: o, dance: o }; })(),
+    },
     exitZ, camDist, minDist: 1.0, maxDist,
     bounds, blockers, fog: null, background: new THREE.Color('#1c1410'),
     update: (t) => g.userData.tick?.(t),
