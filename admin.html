@@ -432,14 +432,14 @@
   // 구글 로그인: Firebase 로 구글 창을 띄우고, 받은 증표를 서버가 검사해서 입장권을 준다
   if (FIREBASE.apiKey) {
     $('#google-box').hidden = false;
+    // Firebase 파일은 미리 받아 둬요: 단추를 누른 '그 순간'에 구글 창을 열어야 사파리가 팝업을 막지 않아요
+    const fbReady = Promise.all([import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js'), import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js')])
+      .then(([app, fa]) => { const auth = fa.getAuth(app.initializeApp(FIREBASE)); const provider = new fa.GoogleAuthProvider(); provider.setCustomParameters({ prompt: 'select_account' }); return { auth, provider, fa }; });
+    let fb = null; fbReady.then((x) => (fb = x)).catch(() => {});
     $('#google-btn').addEventListener('click', async () => {
       $('#g-err').textContent = '';
       try {
-        const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
-        const { getAuth, GoogleAuthProvider, signInWithPopup, signOut } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
-        const auth = getAuth(initializeApp(FIREBASE));
-        const provider = new GoogleAuthProvider();
-        provider.setCustomParameters({ prompt: 'select_account' });
+        const { auth, provider, fa: { signInWithPopup, signOut } } = fb || await fbReady;
         const cred = await signInWithPopup(auth, provider);
         const idToken = await cred.user.getIdToken();
         signOut(auth).catch(() => {}); // 구글 쪽 로그인은 남기지 않고, 우리 입장권만 쓴다
