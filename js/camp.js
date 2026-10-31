@@ -327,7 +327,12 @@ export function buildCampsite(loc) {
       // 코트 양쪽 끝: 비어 있는 쪽으로 가요
       badminton: [{ x: 12, z: -2.5, rot: 0 }, { x: 12, z: 4.5, rot: Math.PI }],
       catchball: [{ x: 12, z: -3.0, rot: 0 }, { x: 12, z: 5.0, rot: Math.PI }],
+      kite: { x: -3, z: 13, rot: 0 }, frisbee: { x: 4, z: 13, rot: 0 }, jumprope: { x: -2.5, z: 9.5, rot: Math.PI },
+      bike: { x: 8.5, z: 2, rot: Math.PI },
     },
+    // 자전거: 모닥불 둘레를 크게 한 바퀴 (탁자 · 해먹 · 코트 안쪽)
+    routes: { bike: { loop: true, speed: 3.2, pts: Array.from({ length: 40 }, (_, k) => { const a = (-2 * Math.PI * k) / 40 + Math.PI / 2; return new THREE.Vector3(2 + 8.5 * Math.sin(a) - 2, 0, 2 + 8.5 * Math.cos(a)); }) } },
+    wanders: { kite: { r: 6, speed: 2.6, wait: 0.4 } },
     beddings: { stargaze: mat2 },
     spawn: new THREE.Vector3(0, 0, 8.5), spawnRot: Math.PI,
     camDist: 7, camRise: 0.32, camLookY: 1.6,
@@ -355,10 +360,37 @@ export function buildShore(loc) {
   const blockers = hammock(w.group, hx, hz);
   const sm = starMat(w.group, loc.id === 'sea' ? 14 : -10, sz - 3.6);
   const walkPath = Array.from({ length: 28 }, (_, k) => { const a = (-2 * Math.PI * k) / 28; return new THREE.Vector3(14 * Math.sin(a), 0, sz - 4.2 + 3.2 * Math.cos(a)); });
+  const wy = { forest: -0.32, sea: -0.35, river: -0.45 }[loc.id];
+  // 징검다리: 계곡은 원래 있던 돌, 강 · 바다는 물속에 납작한 돌을 줄지어 놓아요
+  const sx = loc.id === 'forest' ? 6 : -5, stonePts = [];
+  for (let i = 0; i < 6; i++) {
+    const z = loc.id === 'forest' ? 8.5 + i * 1.6 : sz + 0.9 + i * 1.5, x = sx + (loc.id === 'forest' ? Math.sin(i) * 0.4 : Math.sin(i * 1.3) * 0.5);
+    if (loc.id !== 'forest') { const st = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.5, 0.35, 9), mat('#9d968a')); st.position.set(x, wy - 0.05, z); st.scale.z = 0.8; st.castShadow = st.receiveShadow = true; w.group.add(st); }
+    stonePts.push(new THREE.Vector3(x, loc.id === 'forest' ? -0.05 : wy + 0.13, z));
+  }
+  // 모래성(바다) · 돌탑(계곡 · 강)이 쌓이는 자리
+  const castle = new THREE.Group(); castle.position.set(-3, 0, sz - 0.4); w.group.add(castle);
+  const sand = mat(loc.id === 'sea' ? '#e3cf9e' : '#9d968a');
+  if (loc.id === 'sea') {
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 0.3, 12), sand); base.position.y = 0.15; castle.add(base);
+    for (const [x, z] of [[-0.35, -0.35], [0.35, -0.35], [-0.35, 0.35], [0.35, 0.35]]) { const tw = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.15, 0.4, 8), sand); tw.position.set(x, 0.45, z); castle.add(tw); const cone = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.2, 8), sand); cone.position.set(x, 0.75, z); castle.add(cone); }
+    const keep = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.6, 10), sand); keep.position.y = 0.6; castle.add(keep);
+    const flag = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 0.1), mat('#e2603d', { side: THREE.DoubleSide })); flag.position.set(0.08, 1.05, 0); castle.add(flag);
+  } else {
+    for (let i = 0; i < 6; i++) { const k = 0.32 - i * 0.04; const st = new THREE.Mesh(new THREE.DodecahedronGeometry(k, 0), mat(i % 2 ? '#8f877a' : '#a39b8c')); st.scale.y = 0.55; st.position.y = 0.1 + i * 0.17; st.rotation.y = i; castle.add(st); }
+  }
+  castle.children.forEach((c) => { c.visible = false; c.castShadow = true; });
   return { ...w, seats, blockers, walkPath, camDist: 7, camRise: 0.3, camLookY: 1.2,
     waterY: { forest: -0.32, sea: -0.35, river: -0.45 }[loc.id],
     beddings: { stargaze: sm },
-    spots: { skip: { x: 0, z: sz - 0.1, rot: 0, jx: 4 }, splash: { x: 0, z: sz - 0.1, rot: 0, jx: 4 }, hammock: hammockSpot(hx, hz), stargaze: { x: sm.position.x, z: sz - 2.8, rot: 0, y: 0.06 } } };
+    castle,
+    routes: {
+      stepstones: { pingpong: true, hop: 0.45, speed: 1.6, pts: [new THREE.Vector3(sx, 0, sz - 0.4), ...stonePts] },
+      kayak: { loop: true, speed: 1.4, onWater: wy + 0.02, pts: Array.from({ length: 36 }, (_, k) => { const a = (2 * Math.PI * k) / 36; const c = loc.id === 'forest' ? [0, 13, 9, 2.4] : loc.id === 'river' ? [0, 22, 14, 6] : [0, 20, 14, 5]; return new THREE.Vector3(c[0] + c[2] * Math.sin(a), 0, c[1] - c[3] * Math.cos(a)); }) },
+      wavedodge: { pingpong: true, speed: 3.8, pause: 0.6, pts: [new THREE.Vector3(2, 0, sz - 0.1), new THREE.Vector3(2, 0, sz - 4)] },
+    },
+    wanders: { shells: { r: 4, speed: 0.8, wait: 1.6, center: new THREE.Vector3(0, 0, sz - 1.5) } },
+    spots: { skip: { x: 0, z: sz - 0.1, rot: 0, jx: 4 }, splash: { x: 0, z: sz - 0.1, rot: 0, jx: 4 }, hammock: hammockSpot(hx, hz), stargaze: { x: sm.position.x, z: sz - 2.8, rot: 0, y: 0.06 }, sandcastle: { x: -3, z: sz - 1.2, rot: 0 }, stepstones: { x: sx, z: sz - 0.4, rot: 0 }, kayak: { x: 0, z: sz - 0.2, rot: 0 }, wavedodge: { x: 2, z: sz - 0.1, rot: 0 }, shells: { x: 0, z: sz - 1.5, rot: 0 } } };
 }
 function beachChair(color) {   // 바닷가 접이식 비치 체어 (줄무늬 천)
   const g = relaxChair(color);

@@ -172,15 +172,26 @@ export const ACTIONS = [
   { id: 'stargaze', name: '별자리 찾기', cap: '매트에 누워 밤하늘 보기', verb: '별자리를 찾기 시작했어요', loop: true },
   { id: 'stretch', name: '스트레칭', cap: '기지개 켜고 옆구리 쭉', verb: '스트레칭을 시작했어요', loop: true },
   { id: 'dance', name: '춤추기', cap: '음악에 맞춰 들썩들썩', verb: '춤추기 시작했어요', loop: true },
+  { id: 'airout', name: '환기', cap: '창가로 가서 활짝 열기', verb: '창문을 열었어요', loop: true },
+  { id: 'shake', name: '이불 털기', cap: '탁탁 먼지 털기', verb: '이불을 털기 시작했어요', loop: true },
+  { id: 'kite', name: '연날리기', cap: '달리면 연이 높이', verb: '연을 날리기 시작했어요', loop: true },
+  { id: 'frisbee', name: '프리스비', cap: '휙 던지면 돌아와요', verb: '프리스비를 던지기 시작했어요', loop: true },
+  { id: 'jumprope', name: '줄넘기', cap: '폴짝폴짝', verb: '줄넘기를 시작했어요', loop: true },
+  { id: 'bike', name: '자전거', cap: '마당 한 바퀴 저절로', verb: '자전거를 타기 시작했어요', loop: true },
+  { id: 'stepstones', name: '징검다리', cap: '돌 위를 폴짝폴짝', verb: '징검다리를 건너기 시작했어요', loop: true },
+  { id: 'kayak', name: '카약', cap: '노 저어 한 바퀴', verb: '카약을 타기 시작했어요', loop: true },
+  { id: 'sandcastle', name: '모래성 쌓기', cap: '토닥토닥 쌓아 올리기', verb: '모래성을 쌓기 시작했어요', loop: true },
+  { id: 'wavedodge', name: '파도 피하기', cap: '물결이 오면 후다닥', verb: '파도 피하기를 시작했어요', loop: true },
+  { id: 'shells', name: '조개 줍기', cap: '물가를 걸으며 줍기', verb: '조개를 줍기 시작했어요', loop: true },
   { id: 'diary', name: '일기 쓰기', cap: '오늘 캠핑 한 줄 기록', verb: '일기를 쓰기 시작했어요', loop: true },
   { id: 'tea', name: '코코아', cap: '따뜻한 코코아 한 잔', verb: '코코아를 마시기 시작했어요', loop: true },
 ];
 
 // 장소마다 아래 동작 줄에 나오는 다섯 가지 (숫자 키 1~5 순서). seat: 앉아야 하는 동작이라 자동으로 앉아요
 export const SCENE_ACTIONS = {
-  in: ['wave', 'bugs', 'warm', 'roast', 'fireworks', 'hammock', 'badminton', 'catchball', 'bubbles', 'stargaze'],
-  room: ['nap', 'read', 'guitar', 'tea', 'stretch', 'dance'],
-  out: ['fish', 'bugs', 'skip', 'splash', 'walk', 'hammock', 'bubbles', 'stargaze'],
+  in: ['wave', 'bugs', 'warm', 'roast', 'fireworks', 'hammock', 'badminton', 'catchball', 'bubbles', 'stargaze', 'kite', 'frisbee', 'jumprope', 'bike'],
+  room: ['nap', 'read', 'guitar', 'tea', 'stretch', 'dance', 'airout', 'shake'],
+  out: ['fish', 'bugs', 'skip', 'splash', 'walk', 'hammock', 'bubbles', 'stargaze', 'stepstones', 'kayak', 'sandcastle', 'wavedodge', 'shells'],
   meal: ['cook', 'grill', 'eat', 'wash', 'sweep'],
 };
 // 장소에 따라 이름만 다르게 보이는 동작

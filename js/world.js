@@ -2285,7 +2285,9 @@ export function buildCampRoom(loc, kind) {
     spots: {
       ...(napSpot ? { nap: { x: napSpot.pos.x, z: napSpot.pos.z, rot: napSpot.rot } } : {}),
       // 스트레칭 · 춤은 넓은 쪽에 서서 (의자 · 침대에 가리지 않게)
-      ...(() => { const o = kind === 'cabana' ? { x: 0.4, z: 1.6, rot: Math.PI } : kind === 'minivan' || kind === 'motorhome' ? { x: 0.6, z: 0.1, rot: Math.PI } : { x: 0, z: kind === 'teepee' ? 0.5 : 1.0, rot: Math.PI }; return { stretch: o, dance: o }; })(),
+      ...(() => { const o = kind === 'cabana' ? { x: 0.4, z: 1.6, rot: Math.PI } : kind === 'minivan' || kind === 'motorhome' ? { x: 0.6, z: 0.1, rot: Math.PI } : { x: 0, z: kind === 'teepee' ? 0.5 : 1.0, rot: Math.PI }; return { stretch: o, dance: o, shake: { ...o, rot: Math.PI / 2 } }; })(),   // 이불 털기는 옆으로 서서 (이불이 카메라를 가리지 않게)
+      // 환기: 창가(텐트는 문, 캠핑카는 큰 창, 카바나는 통유리) 앞으로
+      airout: kind === 'cabana' ? { x: 0, z: 2.9, rot: 0 } : kind === 'minivan' || kind === 'motorhome' ? { x: 0, z: 0.55, rot: 0 } : { x: 0, z: kind === 'teepee' ? 0.7 : 1.5, rot: 0 },
     },
     exitZ, camDist, minDist: 1.0, maxDist,
     bounds, blockers, fog: null, background: new THREE.Color('#1c1410'),

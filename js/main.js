@@ -553,7 +553,7 @@ const ICONS = {
 
 // 아래 동작 줄: 장소마다 다른 다섯 가지 (js/data.js 의 SCENE_ACTIONS)
 function renderActions() {
-  const ids = SCENE_ACTIONS[S.scene] || SCENE_ACTIONS.in, names = SCENE_ACTION_NAMES[S.scene] || {};
+  const ids = SCENE_ACTIONS[S.scene] || SCENE_ACTIONS.in, names = { ...(SCENE_ACTION_NAMES[S.scene] || {}), ...(S.scene === 'out' && S.loc?.id !== 'sea' ? { sandcastle: '돌탑 쌓기', shells: '예쁜 돌 줍기', wavedodge: '물결 피하기' } : {}) };
   $('#actions').innerHTML = ids.map((id) => ACTIONS.find((a) => a.id === id)).map((a) =>
     `<button class="act" data-act="${a.id}" aria-pressed="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${ICONS[a.id] || ''}</svg>${names[a.id] || a.name}<small class="cap">${a.cap}</small></button>`).join('');
   syncActionButtons();
@@ -797,21 +797,113 @@ function stepCatch(dt = 0.016) {
 let wanderAt = null, wanderTo = null, wanderWait = 0;
 function stepWander(dt) {
   const a = S.me?.action;
-  if (!['bugs', 'bubbles'].includes(a) || S.seat != null || S.target || S.walking) { wanderAt = wanderTo = null; return; }
+  const conf = S.active?.wanders?.[a] || (['bugs', 'bubbles'].includes(a) ? { r: 5, speed: a === 'bugs' ? 1.6 : 0.9, wait: 1.2 } : null);
+  if (!conf || S.seat != null || S.target || S.walking) { wanderAt = wanderTo = null; return; }
   const g = S.me.group;
-  wanderAt ||= g.position.clone();
+  wanderAt ||= (conf.center || g.position).clone();
   if (wanderWait > 0) { wanderWait -= dt; return; }
   if (!wanderTo) {
-    const ang = Math.random() * Math.PI * 2, r = 1.5 + Math.random() * 3.5;
+    const ang = Math.random() * Math.PI * 2, r = 1.2 + Math.random() * (conf.r - 1.2);
     wanderTo = wanderAt.clone().add(new THREE.Vector3(Math.cos(ang) * r, 0, Math.sin(ang) * r)); collide(wanderTo);
   }
-  const d = wanderTo.clone().sub(g.position).setY(0), len = d.length(), sp = a === 'bugs' ? 1.6 : 0.9;
-  if (len < 0.15) { wanderTo = null; wanderWait = 0.8 + Math.random() * 1.6; return; }
-  const step = Math.min(len, sp * dt);
+  const d = wanderTo.clone().sub(g.position).setY(0), len = d.length(), sp = conf.speed;
+  if (len < 0.15) { wanderTo = null; wanderWait = conf.wait * (0.6 + Math.random() * 0.8); if (a === 'shells') { S.me.actionT = 3.0; pickShell(); } return; }
+  const step = Math.min(len, sp * dt), before = g.position.clone();
   g.position.addScaledVector(d.normalize(), step); collide(g.position);
+  followCam(before);
   const want = Math.atan2(d.x, d.z), diff = Math.atan2(Math.sin(want - g.rotation.y), Math.cos(want - g.rotation.y));
   g.rotation.y += diff * Math.min(1, dt * 6);
   S.me.speed = sp;
+}
+
+// 길 따라 하는 동작: 자전거(마당 한 바퀴) · 카약(물 위 한 바퀴) · 징검다리(돌 위를 폴짝, 갔다가 돌아오기) · 파도 피하기(물가 ↔ 뒤로)
+let route = null;
+function stepRoute(dt) {
+  const a = S.me?.action, conf = S.active?.routes?.[a], g = S.me?.group;
+  if (!conf || S.target || S.seat != null) {
+    if (route) {   // 끝나면 물 밖 · 땅 위로
+      g.position.y = 0; collide(g.position); route = null;
+    }
+    return;
+  }
+  if (!route || route.a !== a) {
+    // 가장 가까운 점부터 출발
+    let best = 0, bd = Infinity; conf.pts.forEach((p, i) => { const d = p.distanceTo(g.position.clone().setY(p.y)); if (d < bd) { bd = d; best = i; } });
+    route = { a, i: best, dir: 1, u: 0, wait: 0 };
+  }
+  if (route.wait > 0) { route.wait -= dt; S.me.speed = 0; return; }
+  const n = conf.pts.length;
+  let j = route.i + route.dir;
+  if (conf.loop) j = (j + n) % n;
+  else if (j < 0 || j >= n) { route.dir *= -1; route.wait = conf.pause || 0.3; return; }
+  const A = conf.pts[route.i], B = conf.pts[j], L = Math.max(0.01, A.distanceTo(B));
+  route.u += (conf.speed * dt) / L;
+  if (route.u >= 1) { route.u = 0; route.i = j; if (a === 'wavedodge' && conf.pts.length === 2) route.wait = route.dir > 0 ? 1.2 : 0.4; return; }
+  const before = g.position.clone();
+  g.position.lerpVectors(A, B, route.u);
+  if (conf.hop) g.position.y += Math.sin(Math.PI * route.u) * conf.hop;
+  if (conf.onWater != null) g.position.y = conf.onWater;
+  const want = Math.atan2(B.x - A.x, B.z - A.z), diff = Math.atan2(Math.sin(want - g.rotation.y), Math.cos(want - g.rotation.y));
+  g.rotation.y += diff * Math.min(1, dt * 8);
+  S.me.speed = a === 'kayak' ? 0 : conf.speed;
+  followCam(before);
+}
+// 저절로 움직일 때(돌아다니기 · 자전거 · 카약 …) 카메라도 같은 만큼 따라가요
+function followCam(before) { const d = S.me.group.position.clone().sub(before).setY(0); camera.position.add(d); controls.target.add(d); }
+let shellN = 0;
+function pickShell() {
+  shellN++;
+  const sea = S.loc?.id === 'sea';
+  const names = sea ? ['가리비 껍데기', '소라 껍데기', '하얀 조개', '분홍 조개', '반질반질한 몽돌'] : ['동글동글 조약돌', '줄무늬 돌', '하트 모양 돌', '반짝이는 차돌', '납작한 물수제비 돌'];
+  if (Math.random() < 0.7) toast(`${sea ? '🐚' : '🪨'} ${names[Math.floor(Math.random() * names.length)]}을(를) 주웠어요 · 오늘 ${shellN}개`);
+}
+
+// 연날리기 연 · 프리스비 원반 · 모래성: 누가 하든 둘레에 보여요
+const kites = new Map(), discs = new Map();
+function stepToys(list, dt) {
+  const seenK = new Set(), seenD = new Set();
+  for (const [, av] of list) {
+    const g = av.group, back = new THREE.Vector3(-Math.sin(g.rotation.y), 0, -Math.cos(g.rotation.y));
+    if (av.action === 'kite') {
+      let k = kites.get(av);
+      if (!k) {
+        const kite = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.1, 4, 1), new THREE.MeshStandardMaterial({ color: ['#e2603d', '#2f7a96', '#e8b54a'][kites.size % 3], side: THREE.DoubleSide }));
+        kite.scale.z = 0.08; const tail = new THREE.Mesh(new THREE.BoxGeometry(0.04, 1.4, 0.02), new THREE.MeshStandardMaterial({ color: '#f4f1ea' })); tail.position.y = -1.2; kite.add(tail);
+        const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineBasicMaterial({ color: '#f4f1ea' }));
+        scene.add(kite, line); k = { kite, line, h: 2 }; kites.set(av, k);
+      }
+      seenK.add(av);
+      // 달릴수록 높이, 멈추면 천천히 내려와요
+      k.h += ((av.speed > 0.5 ? 9 : 5) - k.h) * Math.min(1, dt * 0.6);
+      const t = performance.now() / 1000;
+      k.kite.position.copy(g.position).addScaledVector(back, 3 + k.h * 0.6).add(new THREE.Vector3(Math.sin(t * 0.9) * 1.2, 1.5 + k.h, 0));
+      k.kite.rotation.set(0, g.rotation.y, Math.sin(t * 1.7) * 0.3);
+      const hand = g.position.clone().add(new THREE.Vector3(0, 1.4, 0)).addScaledVector(back, -0.3);
+      k.line.geometry.setFromPoints([hand, k.kite.position]);
+    }
+    if (av.action === 'frisbee') {
+      let d = discs.get(av);
+      if (!d) { d = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.03, 16), new THREE.MeshStandardMaterial({ color: '#e2603d' })); scene.add(d); discs.set(av, d); }
+      seenD.add(av);
+      // 던지는 순간(0.75초)부터 2.6초 동안 앞으로 크게 돌아 다시 손으로
+      const u = (av.actionT % 3 - 0.75) / 1.85, f = back.clone().negate();
+      d.visible = u > 0 && u < 1;
+      if (d.visible) {
+        const side = new THREE.Vector3(f.z, 0, -f.x), r = Math.sin(Math.PI * u);
+        d.position.copy(g.position).add(new THREE.Vector3(0, 1.3 + r * 1.2, 0)).addScaledVector(f, r * 7).addScaledVector(side, Math.sin(Math.PI * 2 * u) * 2.2);
+        d.rotation.y += dt * 25; d.rotation.z = 0.25;
+      }
+    }
+  }
+  for (const [av, k] of kites) if (!seenK.has(av)) { k.kite.removeFromParent(); k.line.removeFromParent(); kites.delete(av); }
+  for (const [av, d] of discs) if (!seenD.has(av)) { d.removeFromParent(); discs.delete(av); }
+  // 모래성 · 돌탑: 쌓는 동안 하나씩 올라가고, 다 쌓으면 그대로 남아요
+  const c = S.active?.castle;
+  if (c && S.me?.action === 'sandcastle' && S.me.group.position.distanceTo(c.position) < 2) {
+    const n = Math.min(c.children.length, Math.floor(S.me.actionT / 1.6) + 1);
+    c.children.forEach((m, i) => { if (i < n && !m.visible) { m.visible = true; m.scale.setScalar(0.01); } });
+  }
+  if (c) c.children.forEach((m) => { if (m.visible && m.scale.x < 1) m.scale.setScalar(Math.min(1, m.scale.x + dt * 2.5)); });
 }
 
 // 배드민턴 · 캐치볼 · 비눗방울: 누가 하든 둘레에 보여요.
@@ -822,6 +914,7 @@ let bubbleTex = null;
 function playersHere() { const list = S.me ? [[net.selfId || 'me', S.me]] : []; for (const [id, r] of S.remotes) if (r.st.s === S.scene && r.av.group.visible) list.push([id, r.av]); return list; }
 function stepPlay(dt) {
   const list = playersHere(), seen = new Set();
+  stepToys(list, dt);
   for (const [id, av] of list) {
     if (av.action === 'bubbles' && Math.random() < dt * 2.2) spawnBubble(av);
     if (av.action !== 'badminton' && av.action !== 'catchball') continue;
@@ -1565,6 +1658,7 @@ function loop() {
   } else if (S.mode === 'world') {
     moveMe(dt);
     stepWander(dt);
+    stepRoute(dt);
     stepCameraTurn(dt);
     controls.update();
     S.me.update(dt, ACTIONS);

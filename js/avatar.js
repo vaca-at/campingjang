@@ -2,6 +2,8 @@
 // 모든 부품은 기본 도형으로 만들고, 관절(hips, head, 팔다리) 회전값으로 동작을 표현한다.
 // 캐릭터는 +z 방향을 바라본다.
 import * as THREE from 'three';
+// 걸으면서(움직이면서) 하는 동작: 걷는 중에도 멈추지 않아요
+const MOVING = new Set(['tapdori', 'bugs', 'bubbles', 'kite', 'bike', 'kayak', 'stepstones', 'wavedodge', 'shells']);
 import { OUTFITS, SKIN_TONES, dressFor, bodyOf } from './data.js';
 import { buildBlock, buildPet, bakeBlock, applyBody, PRESETS } from './blocky.js';
 
@@ -183,6 +185,44 @@ function actionPose(action, t, base, seated) {
     case 'grill': {   // 집게로 뒤집기 (2.5초마다)
       const fl = bump(t % 2.5, 1.4, 1.7, 1.9, 2.2);
       return mix(base, { aR: [-1.0 - fl * 0.5, 0.25 - fl * 0.5], aL: [-0.5, -0.2], head: 0.3, hip: 0.12 }, ease(t / 0.4));
+    }
+    case 'airout': {   // 창문을 양쪽으로 활짝 → 숨 크게 들이쉬기
+      const open = bump(t % 6, 0.2, 0.9, 2.0, 2.6), breathe = bump(t % 6, 2.8, 3.6, 4.6, 5.4);
+      return mix(base, { aL: [-1.5 + 0.6 * breathe, -0.3 - 0.9 * open - 0.6 * breathe], aR: [-1.5 + 0.6 * breathe, 0.3 + 0.9 * open + 0.6 * breathe], head: -0.25 * breathe, hip: -0.05 * breathe }, ease(t / 0.4));
+    }
+    case 'shake': {   // 이불을 두 손으로 잡고 위아래로 탁탁
+      const s = Math.sin(t * 11) * bump(t % 3, 0, 0.3, 1.8, 2.2);
+      return mix(base, { aL: [-1.25 + s * 0.4, -0.25], aR: [-1.25 + s * 0.4, 0.25], hip: 0.1, head: 0.1 }, ease(t / 0.3));
+    }
+    case 'kite':   // 한 손으로 실패를 들고 하늘을 올려다보기
+      return mix(base, { aR: [-2.0 + Math.sin(t * 2) * 0.15, 0.15], aL: [-1.4, -0.25], head: -0.45 }, ease(t / 0.4));
+    case 'frisbee': {   // 3초마다: 옆으로 감았다가 휙 던지기 → 돌아오면 받기
+      const u = t % 3, wind = bump(u, 0.1, 0.5, 0.6, 0.75), fling = bump(u, 0.6, 0.75, 0.9, 1.2), catchP = bump(u, 2.3, 2.6, 2.8, 3.0);
+      return mix(base, { aR: [-1.4 - catchP * 0.6, 0.2 - wind * 1.4 + fling * 1.6], aL: [-0.5, -0.3], hip: 0.1 * wind, head: -0.1 }, ease(t / 0.3));
+    }
+    case 'jumprope': {   // 줄이 발밑을 지날 때 폴짝 (0.6초에 한 번)
+      const ph = (t / 0.6) % 1, hop = Math.max(0, Math.sin(ph * Math.PI * 2 - Math.PI / 2));
+      return mix(base, { y: 0.16 * hop, aL: [-0.45, -0.75], aR: [-0.45, 0.75], lL: [-0.35 * hop, 0], lR: [-0.35 * hop, 0], head: 0.05 }, ease(t / 0.3));
+    }
+    case 'bike': {   // 페달 밟기 + 손잡이
+      const p = Math.sin(t * 8);
+      return mix(base, { y: 0.08, lL: [-1.1 + p * 0.5, 0.05], lR: [-1.1 - p * 0.5, -0.05], aL: [-1.25, -0.2], aR: [-1.25, 0.2], hip: 0.35, head: -0.15 }, ease(t / 0.3));
+    }
+    case 'kayak': {   // 카약 안에 앉아 좌우로 노 젓기
+      const p = Math.sin(t * 2.6);
+      return mix(base, { y: -0.5, lL: [-1.45, 0.08], lR: [-1.45, -0.08], aL: [-1.3 + p * 0.35, -0.3], aR: [-1.3 - p * 0.35, 0.3], hip: 0.1, head: 0 }, ease(t / 0.3));
+    }
+    case 'stepstones':   // 두 팔을 벌려 균형 잡기
+      return mix(base, { aL: [-0.35, -1.1 + Math.sin(t * 3) * 0.15], aR: [-0.35, 1.1 - Math.sin(t * 3) * 0.15], head: 0.15 }, ease(t / 0.3));
+    case 'wavedodge':   // 신나서 두 팔 번쩍
+      return mix(base, { aL: [-2.5, -0.5], aR: [-2.5, 0.5], head: -0.1 }, ease(t / 0.3));
+    case 'shells': {   // 걷다가 멈추면 허리 숙여 줍기 (줍는 순간은 main 이 actionT 로 맞춰요)
+      const pick = bump(t % 5, 3.2, 3.7, 4.3, 4.8);
+      return mix(base, { hip: 1.0 * pick, aR: [-0.9 * pick, 0.1], aL: [-0.3, -0.2], head: 0.4 * pick }, ease(t / 0.3));
+    }
+    case 'sandcastle': {   // 무릎 꿇고 두 손으로 토닥토닥
+      const a = Math.sin(t * 5), b = Math.sin(t * 5 + Math.PI);
+      return mix(base, { y: -0.42, lL: [-1.5, 0.1], lR: [-1.5, -0.1], hip: 0.5, aL: [-1.1 + a * 0.25, -0.2], aR: [-1.1 + b * 0.25, 0.2], head: 0.45 }, ease(t / 0.4));
     }
     case 'stretch': {   // 8초에 한 번: 두 팔 번쩍 기지개 → 왼쪽 옆구리 → 오른쪽 옆구리 → 앞으로 숙이기
       const u = t % 8, up = bump(u, 0.2, 0.8, 1.6, 2.0), l = bump(u, 2.0, 2.5, 3.3, 3.8), r = bump(u, 3.8, 4.3, 5.1, 5.6), fold = bump(u, 5.6, 6.2, 7.2, 7.8);
@@ -645,7 +685,28 @@ export class Avatar {
     const racket = new THREE.Group(); racket.add(mesh(G.cyl, mat('#2a2a2a'), 0.014, 0.3, 0.014, 0, -0.15, 0)); const head = new THREE.Mesh(new THREE.TorusGeometry(0.11, 0.012, 6, 18), mat('#e2603d')); head.scale.y = 1.3; head.position.set(0, -0.44, 0); racket.add(head); const strings = new THREE.Mesh(new THREE.CircleGeometry(0.105, 16), new THREE.MeshStandardMaterial({ color: '#f4f4f4', transparent: true, opacity: 0.35, side: THREE.DoubleSide })); strings.scale.y = 1.3; strings.position.copy(head.position); racket.add(strings);
     const glove = new THREE.Group(); glove.add(mesh(G.sphere, mat('#8a5a2c'), 0.11, 0.12, 0.07, 0, -0.04, 0.02));
     const wand = new THREE.Group(); wand.add(mesh(G.cyl, mat('#3f9a6a'), 0.01, 0.28, 0.01, 0, -0.14, 0)); const loop = new THREE.Mesh(new THREE.TorusGeometry(0.05, 0.008, 6, 14), mat('#3f9a6a')); loop.position.set(0, -0.3, 0); wand.add(loop);
-    this.camp = { roast: hand(skewer), chop: hand(axe), fish: hand(rod), bugs: hand(net), cook: hand(spoon2), grill: hand(tongs), guitar, pot, badminton: hand(racket), catchball: hand(glove), bubbles: hand(wand) };
+    // 몸에 붙는 큰 소품: 자전거 · 카약 · 줄넘기 줄 · 이불 · 연 실패
+    const onBody = (g) => { g.visible = false; this.group.add(g); return g; };
+    const bike = new THREE.Group();
+    for (const z of [-0.55, 0.55]) { const w = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.04, 8, 20), mat('#2a2a2a')); w.rotation.y = Math.PI / 2; w.position.set(0, 0.34, z); bike.add(w); }
+    const fr = mat('#2f7a96');
+    [[0, 0.62, 0, 0.05, 0.05, 1.0, 0], [0, 0.5, -0.25, 0.05, 0.5, 0.05, 0.6], [0, 0.62, 0.42, 0.05, 0.6, 0.05, -0.3]].forEach(([x, y, z, sx, sy, sz, rx]) => { const m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz), fr); m.position.set(x, y, z); m.rotation.x = rx; bike.add(m); });
+    const seatB = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.05, 0.26), mat('#2a2a2a')); seatB.position.set(0, 0.78, -0.3); bike.add(seatB);
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.04, 0.04), mat('#2a2a2a')); bar.position.set(0, 0.95, 0.5); bike.add(bar);
+    const basket = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.2, 0.25), mat('#c9a86a')); basket.position.set(0, 0.85, 0.72); bike.add(basket);
+    const kayak = new THREE.Group();
+    const hull = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 8), mat('#e2603d')); hull.scale.set(0.42, 0.22, 1.9); hull.position.y = 0.05; kayak.add(hull);
+    const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.05, 16), mat('#2a2a2a')); hole.scale.z = 1.4; hole.position.y = 0.22; kayak.add(hole);
+    const paddle = new THREE.Group(); paddle.add(mesh(G.cyl, mat('#e8e2d6'), 0.025, 2.0, 0.025, 0, 0, 0)); for (const s of [-1, 1]) paddle.add(mesh(G.box, mat('#2f7a96'), 0.2, 0.35, 0.03, 0, s * 1.0, 0)); paddle.rotation.z = Math.PI / 2; paddle.position.set(0, 0.95, 0.35); kayak.add(paddle);
+    kayak.userData.paddle = paddle;
+    const rope = new THREE.Group(); const arc = new THREE.Mesh(new THREE.TorusGeometry(0.75, 0.012, 4, 32, Math.PI), mat('#e2603d')); arc.rotation.y = Math.PI / 2; rope.add(arc); rope.position.y = 0.95;
+    const quilt = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.6, 6, 4), new THREE.MeshStandardMaterial({ color: '#e8b54a', side: THREE.DoubleSide })); quilt.position.set(0, 1.0, 0.55); quilt.rotation.x = -0.3;
+    const disc = new THREE.Group(); disc.add(mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.02, 16), mat('#e2603d'), 1, 1, 1, 0, -0.08, 0.05));
+    const spool = new THREE.Group(); spool.add(mesh(G.cyl, mat('#c9a86a'), 0.05, 0.12, 0.05, 0, -0.06, 0.02));
+    const shovel = new THREE.Group(); shovel.add(mesh(G.cyl, mat('#e8b54a'), 0.015, 0.25, 0.015, 0, -0.1, 0)); shovel.add(mesh(G.box, mat('#e8b54a'), 0.1, 0.12, 0.02, 0, -0.26, 0.02));
+    this.camp = { roast: hand(skewer), chop: hand(axe), fish: hand(rod), bugs: hand(net), cook: hand(spoon2), grill: hand(tongs), guitar, pot, badminton: hand(racket), catchball: hand(glove), bubbles: hand(wand),
+      bike: onBody(bike), kayak: onBody(kayak), jumprope: onBody(rope), shake: onBody(quilt), frisbee: hand(disc), kite: hand(spool), sandcastle: hand(shovel) };
+    this.rope = rope; this.kayakG = kayak; this.quilt = quilt;
 
     // 명상할 때 은은한 빛 고리
     const aura = new THREE.Mesh(
@@ -740,7 +801,7 @@ export class Avatar {
     if (SEATED_ONLY.has(this.action) && !this.seated) this.action = null;
     let target = this.seated ? (this.block ? SIT_BLOCK : SIT) : STAND;
     if (this.action) {
-      if (this.speed > 0.2 && !['tapdori', 'bugs', 'bubbles'].includes(this.action)) this.action = null;   // 탑돌이 · 곤충 잡기 · 비눗방울은 걸으면서 하는 동작
+      if (this.speed > 0.2 && !MOVING.has(this.action)) this.action = null;   // 탑돌이 · 곤충 잡기 · 비눗방울은 걸으면서 하는 동작
       else target = actionPose(this.action, this.actionT, target, this.seated);
     }
 
@@ -771,6 +832,10 @@ export class Avatar {
     const lieT = ['nap', 'hammock', 'stargaze'].includes(this.action) ? 1 : 0;
     this.lieK = lerp(this.lieK || 0, lieT, Math.min(1, dt * 3));
     this.body.rotation.x = -this.lieK * Math.PI / 2;
+    // 줄넘기 줄 돌리기 · 카약 노 젓기 · 이불 펄럭
+    if (this.rope.visible) this.rope.rotation.x = (this.actionT / 0.6) * Math.PI * 2;
+    if (this.kayakG.visible) this.kayakG.userData.paddle.rotation.x = Math.sin(this.actionT * 2.6) * 0.6;
+    if (this.quilt.visible) this.quilt.rotation.x = -0.3 + Math.sin(this.actionT * 11) * 0.25;
     this.body.rotation.y = this.action === 'dance' ? Math.sin(performance.now() / 260) * 0.35 : 0;   // 춤: 몸을 좌우로 비틀기
     this.body.rotation.z = this.action === 'hammock' ? Math.sin(performance.now() / 900) * 0.18 * this.lieK : 0;   // 해먹은 좌우로 흔들흔들
     this.body.position.y += this.lieK * 0.18;
