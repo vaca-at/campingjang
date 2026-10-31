@@ -389,7 +389,7 @@ export function buildShore(loc) {
       kayak: { loop: true, speed: 1.4, onWater: wy + 0.02, pts: Array.from({ length: 36 }, (_, k) => { const a = (2 * Math.PI * k) / 36; const c = loc.id === 'forest' ? [0, 13, 9, 2.4] : loc.id === 'river' ? [0, 22, 14, 6] : [0, 20, 14, 5]; return new THREE.Vector3(c[0] + c[2] * Math.sin(a), 0, c[1] - c[3] * Math.cos(a)); }) },
       wavedodge: { pingpong: true, speed: 3.8, pause: 0.6, pts: [new THREE.Vector3(2, 0, sz - 0.1), new THREE.Vector3(2, 0, sz - 4)] },
     },
-    wanders: { shells: { r: 4, speed: 0.8, wait: 1.6, center: new THREE.Vector3(0, 0, sz - 1.5) } },
+    wanders: { shells: { r: 4, speed: 0.8, wait: 1.6, center: new THREE.Vector3(0, 0, sz - 1.5) }, kite: { r: 6, speed: 2.6, wait: 0.4, center: new THREE.Vector3(0, 0, sz - 4) } },
     spots: { skip: { x: 0, z: sz - 0.1, rot: 0, jx: 4 }, splash: { x: 0, z: sz - 0.1, rot: 0, jx: 4 }, hammock: hammockSpot(hx, hz), stargaze: { x: sm.position.x, z: sz - 2.8, rot: 0, y: 0.06 }, sandcastle: { x: -3, z: sz - 1.2, rot: 0 }, stepstones: { x: sx, z: sz - 0.4, rot: 0 }, kayak: { x: 0, z: sz - 0.2, rot: 0 }, wavedodge: { x: 2, z: sz - 0.1, rot: 0 }, shells: { x: 0, z: sz - 1.5, rot: 0 } } };
 }
 function beachChair(color) {   // 바닷가 접이식 비치 체어 (줄무늬 천)
