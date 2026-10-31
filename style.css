@@ -601,3 +601,14 @@ body.menu-open #btn-go, body:has(#menu:not([hidden])) #btn-go { visibility: hidd
 /* 동작이 많으면 아래 줄은 줄이지 말고 옆으로 밀어서 봐요 */
 #actions .act { flex: 0 0 auto; }
 @media (max-width: 600px) { #actions { justify-content: flex-start; } #side-acts .ctx { width: 96px; } }
+/* 휴대폰 세로: 장소 줄을 위 단추 줄 아래 가로로 (1명 표시와 겹치지 않게), 왼쪽 단추는 그 아래부터 */
+@media (max-width: 600px) and (orientation: portrait) {
+  html body #scene-bar { display: flex; top: calc(max(12px, env(safe-area-inset-top)) + 56px); }
+  html body #side-btns { top: calc(max(12px, env(safe-area-inset-top)) + 124px); }
+}
+/* 휴대폰 가로: 오른쪽 동작 단추는 위 단추 줄 아래부터 작게, 두 줄로 */
+@media (max-height: 520px) and (orientation: landscape) {
+  html body #context-btns { top: calc(max(12px, env(safe-area-inset-top)) + 58px); bottom: auto; transform: none; }
+  html body #side-acts { grid-template-columns: repeat(2, auto); gap: 6px; }
+  html body #side-acts .ctx { width: 92px; padding: 7px 0; font-size: 13.5px; }
+}
