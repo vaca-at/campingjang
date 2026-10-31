@@ -6,7 +6,7 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import {
-  LOCATIONS, CHAR_TYPES, OUTFITS, ACCESSORIES, SKIN_TONES, ACTIONS, SERVER_COUNT, SERVER_CAP, GENDERS,
+  LOCATIONS, COMMON_ACTIONS, COMMON_SCENES, CHAR_TYPES, OUTFITS, ACCESSORIES, SKIN_TONES, ACTIONS, SERVER_COUNT, SERVER_CAP, GENDERS,
   SCENES, SCENE_ACTIONS, SCENE_ACTION_NAMES, BODIES, FACES, hairName, season, inSeason, BUDDHAS, randomName, defaultLook, isOldAutoName,
 } from './data.js';
 import { PETS } from './blocky.js';
@@ -554,6 +554,7 @@ const ICONS = {
 // 아래 동작 줄: 장소마다 다른 다섯 가지 (js/data.js 의 SCENE_ACTIONS)
 function renderActions() {
   const ids = SCENE_ACTIONS[S.scene] || SCENE_ACTIONS.in, names = { ...(SCENE_ACTION_NAMES[S.scene] || {}), ...(S.scene === 'out' && S.loc?.id !== 'sea' ? { shells: '예쁜 돌 줍기' } : {}) };
+  $('#side-acts').innerHTML = COMMON_SCENES.includes(S.scene) ? COMMON_ACTIONS.map((id) => ACTIONS.find((a) => a.id === id)).map((a) => `<button class="glass ctx act" data-act="${a.id}" aria-pressed="false"><span class="lbl">${a.name}</span><small class="cap">${a.cap}</small></button>`).join('') : '';
   const onlySea = ['sandcastle', 'wavedodge'];
   $('#actions').innerHTML = ids.filter((id) => S.loc?.id === 'sea' || !onlySea.includes(id)).map((id) => ACTIONS.find((a) => a.id === id)).map((a) =>
     `<button class="act" data-act="${a.id}" aria-pressed="false"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">${ICONS[a.id] || ''}</svg>${names[a.id] || a.name}<small class="cap">${a.cap}</small></button>`).join('');
@@ -662,7 +663,7 @@ const WALK_STEP = 0.75;
 let walkDist = 0, walkBowT = 0;
 // 산보 시작: 먼저 합장하고 1.8초 뒤 걷기 시작 (그 사이 다시 누르면 취소)
 async function startSanbo() {
-  if (S.scene !== 'out') return;
+  if (!S.active.walkPath) return;   // 마당 · 물가 둘레길
   standUp(true);
   startWalk();   // 캠핑장 산책: 바로 걷기
 }

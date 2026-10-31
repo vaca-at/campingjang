@@ -590,3 +590,14 @@ body.menu-open #btn-go, body:has(#menu:not([hidden])) #btn-go { visibility: hidd
 .g-empty { visibility: hidden; }
 .g0 { background: #ece6da; } .g1 { background: var(--grass1); } .g2 { background: var(--grass2); } .g3 { background: var(--grass3); } .g4 { background: var(--grass4); }
 :root { --grass1: #cfe6b8; --grass2: #9ccc6e; --grass3: #5f9a3e; --grass4: #3a6b2a; }
+
+/* 오른쪽: 마당 · 물가 어디서나 하는 동작 (손 흔들기 · 곤충 잡기 · 산책 · 별자리 찾기 · 줄넘기). '…으로' 가는 단추는 없애고 왼쪽 위 장소 줄로만 옮겨요 */
+#btn-go, #btn-yard, #btn-sanbo { display: none !important; }
+#side-acts { display: grid; gap: 8px; pointer-events: auto; }
+#side-acts:empty { display: none; }
+#side-acts .ctx { background: rgba(var(--btn), .58); color: #fff; border: 1px solid rgba(255, 255, 255, .14); cursor: pointer; }
+#side-acts .ctx[aria-pressed="true"] { outline: 3px solid #fff; outline-offset: -3px; }
+#side-acts .ctx .cap { display: none; }
+/* 동작이 많으면 아래 줄은 줄이지 말고 옆으로 밀어서 봐요 */
+#actions .act { flex: 0 0 auto; }
+@media (max-width: 600px) { #actions { justify-content: flex-start; } #side-acts .ctx { width: 96px; } }

@@ -190,11 +190,14 @@ export const ACTIONS = [
 // 장소마다 아래 동작 줄에 나오는 다섯 가지 (숫자 키 1~5 순서). seat: 앉아야 하는 동작이라 자동으로 앉아요
 export const SCENE_ACTIONS = {
   // 마당은 10개까지 (숫자 키 1~0). 넘치는 놀이(비눗방울 · 연날리기 · 프리스비 · 줄넘기)는 물가에서
-  in: ['wave', 'bugs', 'warm', 'roast', 'fireworks', 'hammock', 'badminton', 'stargaze', 'bike'],
+  in: ['warm', 'roast', 'fireworks', 'hammock', 'badminton', 'bike'],
   room: ['nap', 'read', 'guitar', 'tea', 'stretch', 'dance'],
-  out: ['fish', 'bugs', 'skip', 'splash', 'walk', 'hammock', 'bubbles', 'stargaze', 'stepstones', 'kayak', 'sandcastle', 'wavedodge', 'shells', 'kite', 'jumprope'],   // 모래성 · 파도 피하기는 바닷가에서만
+  out: ['fish', 'skip', 'splash', 'hammock', 'bubbles', 'stepstones', 'kayak', 'sandcastle', 'wavedodge', 'shells', 'kite'],   // 모래성 · 파도 피하기는 바닷가에서만
   meal: ['cook', 'grill', 'eat', 'wash', 'sweep'],
 };
+// 마당 · 물가 어디서나 하는 동작: 오른쪽 세로 단추로 (아래 동작 줄과 따로)
+export const COMMON_ACTIONS = ['wave', 'bugs', 'walk', 'stargaze', 'jumprope'];
+export const COMMON_SCENES = ['in', 'out'];
 // 장소에 따라 이름만 다르게 보이는 동작
 export const SCENE_ACTION_NAMES = {};
 
