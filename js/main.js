@@ -486,7 +486,7 @@ function doAction(id) {
   }
   if (spot && S.me.action !== id && spotArrived !== id) {
     const to = new THREE.Vector3(spot.x + (Math.random() - 0.5) * (spot.jx || 0), 0, spot.z);
-    S.spotY = spot.y;
+    S.spotY = spot.y; S.curSpot = spot;
     if (to.distanceTo(S.me.group.position.clone().setY(0)) > 0.35) {
       standUp(); if (S.me.action) S.me.stop();
       S.target = { pos: to, speed: SPEED, face: spot.rot, onArrive: () => { spotArrived = id; doAction(id); spotArrived = null; } };
@@ -1359,7 +1359,7 @@ function loop() {
     stepFireworks(dt);
     stepCatch(dt);
     // 낮잠 이불: 낮잠을 자는 동안만 스르르 펴지고, 일어나면 개어요
-    for (const [act, bed] of Object.entries(S.active?.beddings || {})) { const want = S.me.action === act ? 1 : 0.01; bed.scale.z += (want - bed.scale.z) * Math.min(1, dt * 5); bed.visible = bed.scale.z > 0.05; }
+    for (const [act, beds] of Object.entries(S.active?.beddings || {})) for (const bed of [beds].flat()) { const want = S.me.action === act && (!Array.isArray(beds) || S.curSpot?.bed === bed) ? 1 : 0.01; bed.scale.z += (want - bed.scale.z) * Math.min(1, dt * 5); bed.visible = bed.scale.z > 0.05; }
     stepPlay(dt);
     if (!S.me.action && document.querySelector('.act[aria-pressed="true"]')) syncActionButtons();
     soundFor(S.me, 1);

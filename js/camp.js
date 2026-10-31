@@ -185,6 +185,13 @@ function hammock(group, cx, cz) {
   for (const s of [-1, 1]) { const rope = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.75, 6), mat('#d8d0c0')); rope.position.set(s * 1.75, 1.45, 0); rope.rotation.z = s * 1.0; ham.add(rope); }
   return [{ minX: cx - 2.3, maxX: cx - 1.9, minZ: cz - 0.3, maxZ: cz + 0.3 }, { minX: cx + 1.9, maxX: cx + 2.3, minZ: cz - 0.3, maxZ: cz + 0.3 }];
 }
+// 자전거 거치대: 둥근 철 고리 둘
+function bikeRack(group, x, z) {
+  const r = new THREE.Group(); r.position.set(x, 0, z); group.add(r);
+  for (const dx of [-0.35, 0.35]) { const h = new THREE.Mesh(new THREE.TorusGeometry(0.32, 0.03, 6, 16, Math.PI), mat('#9aa0a6', { metalness: 0.6 })); h.position.set(dx, 0, 0); h.rotation.y = Math.PI / 2; r.add(h); }
+  const sign = new THREE.Mesh(new THREE.CircleGeometry(0.16, 16), mat('#2f7a96')); sign.position.set(0, 0.95, 0); r.add(sign);
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.9, 6), mat('#9aa0a6')); pole.position.y = 0.45; r.add(pole);
+}
 const hammockSpot = (cx, cz) => ({ x: cx - 0.8, z: cz, rot: -Math.PI / 2, y: 0.78 });
 // 별자리 찾기 매트 (누울 때만 펴져요)
 function starMat(group, x, z) {
@@ -309,7 +316,11 @@ export function buildCampsite(loc) {
   const blockM = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 0.5, 12), mat('#7a5232')); blockM.position.y = 0.25; blockM.castShadow = true; pile.add(blockM);
   for (let r = 0; r < 3; r++) for (let i = 0; i < 5 - r; i++) { const lg = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 1.0, 8), mat(i % 2 ? '#8a5a34' : '#6e4a2c')); lg.rotation.x = Math.PI / 2; lg.position.set(-1.3 + i * 0.28 + r * 0.14, 0.13 + r * 0.24, -0.4); lg.castShadow = true; pile.add(lg); }
   yardBlockers.push({ minX: -7.8, maxX: -5.8, minZ: -7.0, maxZ: -5.8 });
-  yardBlockers.push(...hammock(w.group, -12, -10));
+  // 해먹 세 곳 · 별자리 매트 세 곳 · 자전거 거치대 세 곳: 누르면 가장 가까운 데로 가요
+  const HAMMOCKS = [[-12, -10], [8, -15], [-17, 0]];
+  for (const [x, z] of HAMMOCKS) yardBlockers.push(...hammock(w.group, x, z));
+  const BIKES = [[8.5, 2, Math.PI], [-8.5, 2, 0], [0, -6.5, Math.PI / 2]];
+  for (const [x, z] of BIKES) bikeRack(w.group, x, z);
   // 배드민턴 · 캐치볼 마당: 하얀 선과 낮은 그물 (양쪽 끝에 서요)
   const court = new THREE.Group(); court.position.set(12, 0.03, 1); w.group.add(court);
   const line = mat('#f4f1ea');
@@ -318,7 +329,7 @@ export function buildCampsite(loc) {
   const netM = new THREE.Mesh(new THREE.PlaneGeometry(4.8, 0.6), new THREE.MeshStandardMaterial({ color: '#f4f4f4', transparent: true, opacity: 0.45, side: THREE.DoubleSide })); netM.position.set(0, 1.25, 0); court.add(netM);
   const tape = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.05, 0.02), line); tape.position.set(0, 1.55, 0); court.add(tape);
   yardBlockers.push({ minX: 9.4, maxX: 14.6, minZ: 0.85, maxZ: 1.15 });
-  const mat2 = starMat(w.group, 6, -4.9);
+  const MATS = [[6, -4.9], [-3, -5], [3, 16]].map(([x, z]) => ({ x, z, bed: starMat(w.group, x, z) }));
   const baseUpdate = w.update;
   return {
     ...w,
@@ -332,18 +343,18 @@ export function buildCampsite(loc) {
       chop: { x: -6.2, z: -5.3, rot: Math.PI },
       // 불꽃놀이: 마당 곳곳 빈자리 다섯 곳 중 가장 가까운 데서
       fireworks: Object.assign([{ x: 0, z: 11, rot: Math.PI }, { x: -8, z: 3, rot: Math.PI }, { x: 7, z: 6, rot: Math.PI }, { x: -6.5, z: -13, rot: 0 }, { x: 6.5, z: -12, rot: 0 }], { nearest: true }),
-      hammock: hammockSpot(-12, -10),
-      stargaze: { x: 6, z: -4.1, rot: 0, y: 0.06 },
+      hammock: Object.assign(HAMMOCKS.map(([x, z]) => hammockSpot(x, z)), { nearest: true }),
+      stargaze: Object.assign(MATS.map((m) => ({ x: m.x, z: m.z + 0.8, rot: 0, y: 0.06, bed: m.bed })), { nearest: true }),
       // 코트 양쪽 끝: 비어 있는 쪽으로 가요
       badminton: [{ x: 12, z: -2.5, rot: 0 }, { x: 12, z: 4.5, rot: Math.PI }],
       catchball: [{ x: 12, z: -3.0, rot: 0 }, { x: 12, z: 5.0, rot: Math.PI }],
       kite: { x: -3, z: 13, rot: 0 }, frisbee: { x: 4, z: 13, rot: 0 }, jumprope: { x: -2.5, z: 9.5, rot: Math.PI },
-      bike: { x: 8.5, z: 2, rot: Math.PI },
+      bike: Object.assign(BIKES.map(([x, z, rot]) => ({ x, z, rot })), { nearest: true }),
     },
     // 자전거: 모닥불 둘레를 크게 한 바퀴 (탁자 · 해먹 · 코트 안쪽)
     routes: { bike: { loop: true, speed: 3.2, pts: Array.from({ length: 40 }, (_, k) => { const a = (-2 * Math.PI * k) / 40 + Math.PI / 2; return new THREE.Vector3(2 + 8.5 * Math.sin(a) - 2, 0, 2 + 8.5 * Math.cos(a)); }) } },
     wanders: { kite: { r: 6, speed: 2.6, wait: 0.4 } },
-    beddings: { stargaze: mat2 },
+    beddings: { stargaze: MATS.map((m) => m.bed) },
     spawn: new THREE.Vector3(0, 0, 8.5), spawnRot: Math.PI,
     camDist: 7, camRise: 0.32, camLookY: 1.6,
     blockers: [{ minX: -3.4, maxX: 3.4, minZ: -14, maxZ: -8 }, { minX: -1.1, maxX: 1.1, minZ: 1.9, maxZ: 4.1 }, ...yardBlockers],
@@ -371,7 +382,7 @@ export function buildShore(loc) {
   if (loc.id === 'river') { const post = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 1.8, 8), mat('#5a3a24')); post.position.set(-4.2, 0.9, sz - 1); w.group.add(post); lantern(w.group, -4.2, 1.85, sz - 1); }
   // 물가에도 해먹 · 별자리 매트, 물가를 따라 도는 산책길
   const blockers = [];   // 물가에는 해먹을 두지 않아요
-  const sm = starMat(w.group, loc.id === 'sea' ? 14 : -10, sz - 3.6);
+  const SM = [loc.id === 'sea' ? 14 : -10, loc.id === 'sea' ? -14 : 6].map((x) => ({ x, bed: starMat(w.group, x, sz - 3.6) }));
   const walkPath = Array.from({ length: 28 }, (_, k) => { const a = (-2 * Math.PI * k) / 28; return new THREE.Vector3(14 * Math.sin(a), 0, sz - 4.2 + 3.2 * Math.cos(a)); });
   const wy = { forest: -0.32, sea: -0.35, river: -0.45 }[loc.id];
   // 징검다리: 계곡은 원래 있던 돌, 강 · 바다는 물속에 납작한 돌을 줄지어 놓아요
@@ -397,7 +408,7 @@ export function buildShore(loc) {
   const dryZ = { forest: 3.5, sea: 8.5, river: 8.8 }[loc.id];
   return { ...w, seats, blockers, walkPath, dryZ, camDist: 7, camRise: 0.3, camLookY: 1.2,
     waterY: { forest: -0.32, sea: -0.35, river: -0.45 }[loc.id],
-    beddings: { stargaze: sm },
+    beddings: { stargaze: SM.map((m) => m.bed) },
     castle,
     routes: {
       stepstones: { pingpong: true, hop: 0.45, speed: 1.6, pts: [new THREE.Vector3(sx, 0, sz - 0.4), ...stonePts] },
@@ -405,7 +416,7 @@ export function buildShore(loc) {
       wavedodge: { pingpong: true, speed: 3.8, pause: 0.6, pts: [new THREE.Vector3(2, 0, sz - 0.1), new THREE.Vector3(2, 0, sz - 4)] },
     },
     wanders: { shells: { r: 4, speed: 0.8, wait: 1.6, center: new THREE.Vector3(0, 0, sz - 1.5) }, kite: { r: 6, speed: 2.6, wait: 0.4, center: new THREE.Vector3(0, 0, sz - 4) } },
-    spots: { skip: { x: 0, z: sz - 0.1, rot: 0, jx: 4 }, splash: { x: 0, z: sz - 0.1, rot: 0, jx: 4 }, stargaze: { x: sm.position.x, z: sz - 2.8, rot: 0, y: 0.06 }, sandcastle: { x: -3, z: sz - 1.2, rot: 0 }, stepstones: { x: sx, z: sz - 0.4, rot: 0 }, kayak: { x: 0, z: sz - 0.2, rot: 0 }, wavedodge: { x: 2, z: sz - 0.1, rot: 0 }, shells: { x: 0, z: sz - 1.5, rot: 0 } } };
+    spots: { skip: { x: 0, z: sz - 0.1, rot: 0, jx: 4 }, splash: { x: 0, z: sz - 0.1, rot: 0, jx: 4 }, stargaze: Object.assign(SM.map((m) => ({ x: m.x, z: sz - 2.8, rot: 0, y: 0.06, bed: m.bed })), { nearest: true }), sandcastle: { x: -3, z: sz - 1.2, rot: 0 }, stepstones: { x: sx, z: sz - 0.4, rot: 0 }, kayak: { x: 0, z: sz - 0.2, rot: 0 }, wavedodge: { x: 2, z: sz - 0.1, rot: 0 }, shells: { x: 0, z: sz - 1.5, rot: 0 } } };
 }
 function beachChair(color) {   // 바닷가 접이식 비치 체어 (줄무늬 천)
   const g = relaxChair(color);
@@ -495,6 +506,7 @@ export function buildCampKitchen(loc) {
     blockers,
     // 요리 · 고기 굽기는 버너 앞, 설거지는 개수대 앞, 청소는 분리수거함 앞
     spots: { cook: { x: 1.2, z: -5.55, rot: Math.PI, jx: 0.3, sideCam: true }, grill: { x: 2.8, z: -5.55, rot: Math.PI, jx: 0.3, sideCam: true }, wash: { x: -2.7, z: -5.55, rot: Math.PI, jx: 2.4, sideCam: true }, sweep: { x: 4.2, z: -2.15, rot: Math.PI / 2, jx: 0 } },
+    wanders: { kite: { r: 5, speed: 2.6, wait: 0.4, center: new THREE.Vector3(0, 0, 8) } },
     // 산책: 취사장 지붕 둘레를 한 바퀴
     walkPath: Array.from({ length: 24 }, (_, k) => { const a = (-2 * Math.PI * k) / 24; return new THREE.Vector3(7.5 * Math.sin(a), 0, -3 + 6 * Math.cos(a)); }),
   };
