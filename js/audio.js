@@ -96,6 +96,43 @@ function pluck(freq, at, gain) {
   src.connect(g).connect(master); src.start(ctx.currentTime + at);
 }
 const CHORDS = [[98, 147, 196, 247, 294, 392], [131, 165, 196, 262, 330], [110, 165, 220, 262, 330], [147, 220, 294, 370]];   // G · C · Am · D
+// 동작을 시작할 때 한 번, 짧게 (0.2~0.8초). 동작마다 어울리는 소리
+const chime = (notes, { gap = 0.08, type = 'triangle', gain = 0.09, dur = 0.35 } = {}) => notes.forEach((f, i) => tone(f, dur, { gain, at: i * gap, type }));
+const START = {
+  wave: () => chime([880, 1175], { gap: 0.1 }),                                   // 띠링 (인사)
+  bugs: () => noise(0.35, { freq: 600, to: 2400, q: 2.5, gain: 0.14 }),          // 휘익 (잠자리채)
+  walk: () => [0, 0.28].forEach((at) => noise(0.08, { type: 'lowpass', freq: 700, gain: 0.25, at })),   // 저벅저벅
+  stargaze: () => chime([1568, 2093, 2637], { gap: 0.12, type: 'sine', gain: 0.06, dur: 0.8 }),         // 반짝반짝
+  jumprope: () => [0, 0.3].forEach((at) => { noise(0.05, { freq: 3000, q: 2, gain: 0.12, at }); slide(220, 120, 0.08, { gain: 0.12, at: at + 0.06 }); }),
+  warm: () => { for (let i = 0; i < 4; i++) noise(0.03, { freq: 2000 + Math.random() * 2000, gain: 0.12, at: Math.random() * 0.4 }); },   // 타닥
+  roast: () => noise(0.5, { type: 'highpass', freq: 3000, gain: 0.06, attack: 0.05 }),                 // 지글
+  fireworks: () => slide(400, 1400, 0.4, { gain: 0.05 }),                                                // 피유
+  hammock: () => slide(300, 220, 0.5, { gain: 0.08, type: 'triangle' }),                                 // 끼익
+  badminton: () => { noise(0.05, { freq: 2500, q: 3, gain: 0.2 }); slide(900, 600, 0.05, { gain: 0.08 }); },   // 통
+  bike: () => chime([1760, 1760], { gap: 0.15, type: 'sine', gain: 0.1, dur: 0.25 }),                    // 따르릉
+  fish: () => noise(0.3, { freq: 700, to: 3000, q: 3, gain: 0.15 }),                                      // 휙
+  skip: () => slide(800, 400, 0.08, { gain: 0.1 }),                                                       // 톡
+  splash: () => noise(0.4, { freq: 1800, to: 400, q: 0.8, gain: 0.25 }),                                  // 첨벙
+  bubbles: () => [0, 0.12, 0.22].forEach((at, i) => slide(600 + i * 200, 1200 + i * 200, 0.06, { gain: 0.06, at })),   // 뽀록
+  stepstones: () => [0, 0.2].forEach((at) => noise(0.06, { type: 'lowpass', freq: 500, gain: 0.25, at })),
+  kayak: () => noise(0.5, { freq: 900, to: 400, q: 1, gain: 0.15 }),                                      // 촤아
+  sandcastle: () => noise(0.25, { type: 'lowpass', freq: 900, gain: 0.18 }),                              // 사각
+  shells: () => chime([1319, 1760], { gap: 0.07, type: 'sine', gain: 0.07 }),
+  kite: () => noise(0.6, { freq: 400, to: 900, q: 0.7, gain: 0.1, attack: 0.15 }),                        // 바람
+  cook: () => { slide(150, 150, 0.05, { gain: 0.1 }); noise(0.4, { freq: 1200, q: 0.5, gain: 0.08, at: 0.05 }); },   // 딸깍 + 화르륵
+  grill: () => noise(0.6, { type: 'highpass', freq: 3500, gain: 0.1, attack: 0.02 }),                    // 치익
+  eat: () => [0, 0.15, 0.3].forEach((at) => noise(0.07, { freq: 1500, q: 1.5, gain: 0.08, at })),        // 후루룩
+  wash: () => noise(0.5, { freq: 2500, q: 0.6, gain: 0.08, attack: 0.05 }),                               // 쏴아
+  sweep: () => [0, 0.25].forEach((at) => noise(0.15, { freq: 3000, q: 0.5, gain: 0.07, at })),            // 쓱싹
+  nap: () => chime([523, 392], { gap: 0.25, type: 'sine', gain: 0.07, dur: 0.6 }),                        // 스르르
+  read: () => noise(0.15, { freq: 4000, q: 0.5, gain: 0.08 }),                                            // 사락
+  guitar: () => chime([196, 247, 294, 392], { gap: 0.03, type: 'triangle', gain: 0.07, dur: 0.6 }),
+  tea: () => [0, 0.08].forEach((at, i) => tone(2600 - i * 300, 0.15, { gain: 0.05, at })),               // 짠 (컵)
+  stretch: () => slide(300, 600, 0.4, { gain: 0.06, type: 'sine' }),                                      // 쭈욱
+  dance: () => chime([523, 659, 784, 1047], { gap: 0.09, type: 'square', gain: 0.03, dur: 0.15 }),       // 둠칫
+};
+export function startSfx(id) { if (!sound.on || !START[id]) return; ensure(); START[id](); }
+
 export function sfx(kind, vol = 1, arg = 0) {
   if (!sound.on || vol <= 0) return;
   ensure();

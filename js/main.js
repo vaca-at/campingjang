@@ -14,7 +14,7 @@ import { Avatar } from './avatar.js';
 import { buildInterior, buildExterior, buildMealHall, buildRoom, buildBoriamView, buildLantern, paintView, PAGODAS, setPanorama } from './world.js';
 import { Net, preloadNet } from './net.js';
 import { hangScroll, stopScrolls } from './scrolls.js';
-import { setSound, sound, moktak, bowl, coin, bigBell, sfx, setAmbience, TRACKS, setMusic, music } from './audio.js';
+import { setSound, sound, moktak, bowl, coin, bigBell, sfx, startSfx, setAmbience, TRACKS, setMusic, music } from './audio.js';
 import { buildCampsite, buildShore, buildShelterRoom, buildCampKitchen, yardBase, SHELTERS, shelterOf } from './camp.js';
 import { addPhoto, listPhotos, removePhoto } from './album.js';
 import { launchFirework, stepFireworks, addToDex, renderDex, loadDex } from './fun.js';
@@ -568,7 +568,7 @@ function doAction(id) {
     const on = S.walking && S.walkMode === id;
     stopWalk();
     S.target = null;
-    if (!on) id === 'walk' ? startSanbo() : startTapdori();
+    if (!on) { startSfx(id); id === 'walk' ? startSanbo() : startTapdori(); }
     net.sendAct({ a: id, on: !on });
     syncActionButtons();
     return;
@@ -614,6 +614,7 @@ function doAction(id) {
   S.target = null;
   S.walking = false;
   const on = S.me.play(id);
+  if (on) startSfx(id);   // 시작할 때만 짧게 한 번
   // 내 자리 낮잠: 침대 · 침낭 위로 옮겨 눕고, 다른 동작을 하면 다시 자리에 앉아요
   if (S.scene === 'room' && S.active.napSpot) {
     if (on && id === 'nap') { S.seat = null; S.me.seated = false; const n = S.active.napSpot; S.me.group.position.copy(n.pos); S.me.group.rotation.y = n.rot; }   // 이불 위로 (이불은 아래 그리기에서 펴져요)
