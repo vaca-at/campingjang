@@ -86,7 +86,6 @@ export const OUTFITS = [
   { id: 'hanbok', name: '생활한복', cap: '쪽빛 저고리와 고름', top: '#4f5f8f', bottom: '#d9d2c0', sash: '#e8a3a3', style: 'hanbok', hidden: true },
   { id: 'lotus', name: '연꽃 법회복', cap: '하얀 옷에 연분홍 띠', top: '#f6f2ea', bottom: '#efe7d8', sash: '#e58fa6', style: 'robe', hidden: true },
   { id: 'hiking', name: '등산복', cap: '산길 오르는 차림과 배낭', top: '#e2603d', bottom: '#3c4552', sash: '#2b7a6a', style: 'hiking' },
-  { id: 'durumagi', name: '단풍 두루마기', cap: '가을빛 긴 두루마기', top: '#b5502e', bottom: '#d8c7a6', sash: '#f0c05a', style: 'coat', hidden: true },
   { id: 'saehanbok', name: '연두 개량한복', cap: '연두 저고리에 흰 바지', top: '#a8c97a', bottom: '#f2ede2', sash: '#d96a6a', style: 'hanbok', hidden: true },
   { id: 'suhaeng', name: '갈색 수행복', cap: '편안한 갈색 수행복', top: '#8a6a4a', bottom: '#7a5c3e', sash: '#c9a24a', style: 'robe', hidden: true },
   { id: 'overalls', name: '청 멜빵바지', cap: '흰 티에 청 멜빵', top: '#f4f4f2', bottom: '#4a6fa5', deco: 'overalls', decoC: '#4a6fa5', style: 'plain' },

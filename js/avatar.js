@@ -344,7 +344,7 @@ export class Avatar {
     const torso = mesh(G.cyl, top, 1, 1, 1, 0, 0.27, 0);
     torso.geometry = new THREE.CylinderGeometry(0.22, 0.3, 0.56, 22);
     hips.add(torso);
-    const longSkirt = outfit.style === 'coat' || outfit.style === 'kasaya' || outfit.style === 'wizard';
+    const longSkirt = outfit.style === 'kasaya' || outfit.style === 'wizard';
     if (outfit.style !== 'hiking' && outfit.style !== 'hanbok') {
       const skirt = mesh(G.cone, longSkirt ? top : bottom, 0.34, longSkirt ? 0.4 : 0.3, 0.32, 0, longSkirt ? -0.17 : -0.12, 0);
       skirt.material = (longSkirt ? top : bottom).clone();
@@ -375,10 +375,6 @@ export class Avatar {
     if (outfit.style === 'hiking') {
       hips.add(mesh(G.box, mat('#f2f2f2'), 0.02, 0.5, 0.02, 0, 0.27, 0.27));
       hips.add(mesh(G.cyl, sash, 0.2, 0.08, 0.2, 0, 0.56, 0));
-    }
-    if (outfit.style === 'coat') {
-      hips.add(mesh(G.box, white, 0.06, 0.3, 0.03, 0.05, 0.4, 0.22));
-      const tie = mesh(G.box, sash, 0.06, 0.26, 0.02, -0.05, 0.16, 0.29); tie.rotation.z = -0.3; hips.add(tie);
     }
 
     // 팔: 어깨 관절에서 아래로

@@ -206,7 +206,7 @@ export function buildBlock(av, body, look, outfit, skinColor) {
   box(hips, top, 0.5, 0.56, 0.28, 0, 0.28, 0);
   if (inner !== top) box(hips, inner, 0.16, 0.5, 0.02, 0, 0.3, 0.145);
   av.skirt = null;
-  if (!own && ['robe', 'kasaya', 'coat', 'wizard'].includes(outfit.style)) {
+  if (!own && ['robe', 'kasaya', 'wizard'].includes(outfit.style)) {
     const sk = box(hips, outfit.style === 'robe' ? bottom : top, 0.54, 0.34, 0.32, 0, -0.12, 0);
     sk.userData = { sx: 0.54, sz: 0.32, h: 0.34, y: -0.12, box: true };
     av.skirt = sk;

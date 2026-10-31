@@ -84,6 +84,8 @@ profile.look = { ...defaultLook(), ...profile.look };
 if (!CHAR_TYPES.some((t) => t.id === profile.look.type)) profile.look.type = defaultLook().type;
 // 예전 '캐릭터 기본 옷'은 그 캐릭터 차림을 옷 목록의 같은 옷으로 옮겨요 (모습은 그대로)
 if (profile.look.outfit === 'own') { profile.look.outfit = `wear_${profile.look.type}`; store.set('profile', profile); }
+// 목록에서 없앤 옷(예: 단풍 두루마기)을 입고 있던 분은 기본 옷으로
+if (!OUTFITS.some((o) => o.id === profile.look.outfit)) { profile.look.outfit = defaultLook().outfit; store.set('profile', profile); }
 
 const S = {
   profile,
