@@ -44,6 +44,15 @@ export default {
       const exp = Date.now() + 30 * 24 * 3600 * 1000;
       return json(req, { token: `${exp}.${await sign(String(exp), env.ADMIN_PASSWORD.trim())}`, exp });
     }
+    // 관리자 허브(moontr.site)가 읽는 방문 숫자: 날짜별 방문 · 시간대 · 입장 · 머문 시간 · 동시접속 최고 · 지금 인원
+    // 모두 '몇 번 · 몇 명' 숫자뿐이라 로그인 없이 내줘요 (누가 왔는지 · 연등 글 · 신고는 들어 있지 않아요)
+    if (url.pathname === '/public/visits') {
+      const s = await env.STATS.get(env.STATS.idFromName('stats')).fetch('https://stats/read').then((r) => r.json());
+      const rooms = await Promise.all(Array.from({ length: SERVERS }, (_, i) => env.ROOMS.get(env.ROOMS.idFromName(`hall-${i + 1}`)).fetch('https://room/live').then((r) => r.json()).then((j) => j.n || 0).catch(() => 0)));
+      const online = rooms.reduce((a, b) => a + b, 0);
+      return json(req, { total: s.total || 0, today: s.today || 0, days: s.days || {}, hours: s.hours || {}, joins: s.joins || {}, staySec: s.staySec || {}, stayN: s.stayN || {},
+        peaks: s.peaks || {}, best: s.best || { n: 0 }, wishDays: s.wishDays || {}, wishTotal: s.wishTotal || 0, online, rooms });
+    }
     // 관리자 구글 로그인: Firebase 가 준 구글 로그인 증표(ID 토큰)를 검사해서, 허락된 이메일이면 30일 입장권을 준다
     if (url.pathname === '/admin/google' && req.method === 'POST') {
       const body = await req.json().catch(() => ({}));
