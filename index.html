@@ -110,6 +110,7 @@
     <button data-menu="album"><span class="lbl">사진 보기</span><small class="cap">카메라 단추로 찍은 사진 모아 보기</small></button>
     <button data-menu="music"><span class="lbl">캠핑 음악</span><small class="cap">모닥불 · 풀벌레 · 통기타</small></button>
     <button data-menu="dex"><span class="lbl">도감</span><small class="cap">잡은 물고기 · 곤충, 만든 요리</small></button>
+    <button type="button" onclick="document.getElementById('menu').hidden=true;window.moontrHelp&&moontrHelp.open()"><span class="lbl">문의하기</span><small class="cap">궁금한 점을 남기면 AI 가 먼저 답하고, 관리자도 답해요</small></button>
     <button data-menu="report"><span class="lbl">신고하기</span><small class="cap">불쾌한 캠퍼 이름을 알려 주세요</small></button>
     <p class="menu-links"><button type="button" class="menu-link" data-menu="credit">자료 출처</button> · <a href="terms.html" target="_blank" rel="noopener">이용약관</a> · <a href="privacy.html" target="_blank" rel="noopener"><b>개인정보처리방침</b></a></p>
   </div>
@@ -285,5 +286,6 @@
 <script type="module" src="js/share.js"></script>
 <script type="module" src="js/report.js"></script>
 <script type="module" src="js/tip.js"></script>
+<script src="https://moontr.site/help.js" data-app="campingjang" defer></script>
 </body>
 </html>
