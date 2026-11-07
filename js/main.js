@@ -351,8 +351,11 @@ function pushState(force = false) {
   };
   const key = JSON.stringify({ ...st, at: 0 });
   const now = performance.now();
-  // 바뀐 게 있으면 0.25초마다, 없으면 5초마다 한 번
-  if (force || (key !== lastSent && now - lastSentAt > 250) || now - lastSentAt > 5000) {
+  // 서버 부르기 줄이기: 다른 탭을 보고 있으면 안 보내요. 움직였을 때만 보내고(함께 있는 분이 있으면 0.25초, 혼자면 5초마다),
+  // 가만히 있으면 함께 있는 분이 있을 때만 1분에 한 번 '여기 있어요'
+  if (document.hidden && !force) return;
+  const alone = S.remotes.size === 0;
+  if (force || (key !== lastSent && now - lastSentAt > (alone ? 5000 : 250)) || (!alone && now - lastSentAt > 60000)) {
     lastSent = key; lastSentAt = now;
     net.sendState(st);
   }
