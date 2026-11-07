@@ -5,8 +5,8 @@ export const APP_ID = 'campingjang-v1';
 export const RELAY_URL = 'https://campingjang-rooms.bellachord.workers.dev';
 // 관리자 구글 로그인 (Firebase Moon 프로젝트). apiKey 는 공개돼도 되는 값. 비어 있으면 구글 로그인 단추를 숨긴다
 export const FIREBASE = { apiKey: 'AIzaSyA3CxawUPIfGeBWyffsNbCSM3ymjKHLH6o', authDomain: 'moon-d528d.firebaseapp.com', projectId: 'moon-d528d', appId: '1:126636401536:web:25b8a8296ec42b86f99765' };
-export const SERVER_COUNT = 12;
-export const SERVER_CAP = 100;
+export const SERVER_COUNT = 10;
+export const SERVER_CAP = 20;
 
 // 캠핑 사이트(디자인) 3곳. id 는 풍경 모양(world.js)을 고르는 이름이라 그대로 두고 이름만 캠핑으로
 export const LOCATIONS = [

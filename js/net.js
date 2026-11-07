@@ -1,5 +1,5 @@
 // 실시간 접속. 두 가지 방식을 같은 모양으로 감싼다.
-// 1) 방 중계 서버(Cloudflare Durable Objects): RELAY_URL 이 있고 응답하면 이걸 쓴다. 방마다 100명까지 안정적.
+// 1) 방 중계 서버(Cloudflare Durable Objects): RELAY_URL 이 있고 응답하면 이걸 쓴다. 방마다 20명까지.
 // 2) 브라우저끼리 직접 연결(Trystero, WebRTC): 중계 서버가 없을 때. 한 방 30명 안팎까지.
 import { APP_ID, RELAY_URL, SERVER_COUNT } from './data.js';
 

@@ -1,11 +1,11 @@
 // 큰법당 템플스테이 방 중계 서버.
-// 방(예: forest-3) 하나가 Durable Object 하나. 최대 100명이 웹소켓으로 붙고,
+// 방(예: forest-3) 하나가 Durable Object 하나. 최대 20명이 웹소켓으로 붙고,
 // 서로의 위치·동작을 그대로 나눠 준다. 연등은 모든 서버가 함께 보는 저장소(Stats)에 60개까지 남는다
 // (색·법명만, 소원 글은 받지 않음). 한 접속에서 연등은 1분에 하나.
 import { DurableObject } from 'cloudflare:workers';
 
-const CAP = 100;
-const SERVERS = 12;   // 큰법당 서버 hall-1 ~ hall-12 (js/data.js 의 SERVER_COUNT)
+const CAP = 20;
+const SERVERS = 10;   // 서버 hall-1 ~ hall-10 (서버마다 20명) (js/data.js 의 SERVER_COUNT)
 const WISH_GAP = 60e3; // 연등은 1분에 하나
 const GRACE = 30e3;    // 끊긴 분 자리를 남겨 두는 시간 (다른 창에 잠깐 다녀오기, 휴대폰 화면 끄기)
 // 'hall' 이 큰법당 서버 1~12. 예전 위치별 방 이름도 받아 둔다

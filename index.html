@@ -106,6 +106,7 @@
   <div id="menu" class="glass menu" hidden>
     <span id="hud-timer" title="머문 시간"></span>
     <button data-menu="guide"><span class="lbl">사용 안내</span><small class="cap">처음이라면 여기부터 · 단추 · 장소 · 동작 안내</small></button>
+    <button data-menu="server"><span class="lbl">서버 고르기</span><small class="cap" id="menu-server-cap">지금 내 자리 보기 · 다른 서버로 옮기기 (서버 10개 · 20명씩)</small></button>
     <button data-menu="settings"><span class="lbl">개인 설정</span><small class="cap">이름 · 모습 · 환경 · 사진 · 내 기록</small></button>
     <button data-menu="album"><span class="lbl">사진 보기</span><small class="cap">카메라 단추로 찍은 사진 모아 보기</small></button>
     <button data-menu="music"><span class="lbl">캠핑 음악</span><small class="cap">모닥불 · 풀벌레 · 통기타</small></button>
@@ -156,7 +157,7 @@
 <div id="server-modal" class="modal" hidden>
   <div class="sheet">
     <header class="panel-head"><h2 id="server-title"></h2><button class="icon-btn" data-close="server-modal" aria-label="닫기"><span class="lbl">✕</span><small class="cap">닫기</small></button></header>
-    <p class="sub">처음엔 모두 1번 본 서버에 모여요. 혼자 쉬고 싶으면 사람 적은 서버로 옮겨요. 서버마다 100명까지.</p>
+    <p class="sub">처음엔 모두 1번 본 서버에 모여요. 혼자 쉬고 싶으면 사람 적은 서버로 옮겨요. 서버 10개, 서버마다 20명까지.</p>
     <div class="row between"><span id="server-now" class="muted"></span><button id="server-refresh" class="link"><span class="lbl">인원 새로고침</span><small class="cap">지금 인원 다시 세기</small></button></div>
     <p class="muted small server-note">표시된 인원은 실제 방문객 수예요.</p>
     <div id="server-grid" class="server-grid"></div>

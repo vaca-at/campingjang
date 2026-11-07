@@ -963,7 +963,7 @@ function renderServerGrid() {
   if (!S.loc) return;
   const counts = net.counts();
   $('#server-title').textContent = '캠핑장 서버';
-  $('#server-now').textContent = S.server ? `현재 · 캠핑장 서버 ${S.server}` : '서버를 찾는 중이에요';
+  $('#server-now').textContent = S.server ? `지금 내 자리 · 캠핑장 서버 ${S.server} · ${SCENES[S.scene]?.name || ''} (${S.loc?.name || ''})` : '서버를 찾는 중이에요';
   let html = '';
   for (let i = 1; i <= SERVER_COUNT; i++) {
     const c = counts[i] || 0;
@@ -1491,6 +1491,7 @@ document.addEventListener('click', (e) => {
     $('#menu').hidden = true; document.body.classList.remove('menu-open');
     const m = t.dataset.menu;
     if (m === 'guide') window.open('guide.html', '_blank', 'noopener');
+    if (m === 'server') { net.refreshCounts(); renderServerGrid(); $('#server-modal').hidden = false; }
     if (m === 'settings') openSettings('account');
     if (m === 'album') openSettings('photo');
     if (m === 'char') openCreator();

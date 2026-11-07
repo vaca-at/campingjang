@@ -454,6 +454,15 @@
       }
     });
   }
+  // 관리자 허브(moontr.site/admin) 창 안에서 열리면: 허브에 로그인해 둔 관리자 증표를 받아 바로 들어가요 (구글 창을 또 띄우지 않아요)
+  if (window.parent !== window && !getTok()) {
+    window.addEventListener('message', async (e) => {
+      if (e.origin !== 'https://moontr.site' || e.data?.t !== 'moontr-token') return;
+      const r = await fetch(`${RELAY_URL}/admin/google`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ idToken: e.data.idToken }) }).catch(() => null);
+      if (r?.ok && !getTok()) { setTok((await r.json()).token); show(true); }
+    });
+    window.parent.postMessage({ t: 'moontr-need-token' }, 'https://moontr.site');
+  }
   $('#refresh').addEventListener('click', load);
   $('#logout').addEventListener('click', () => { setTok(''); show(false); });
   show(!!getTok());
