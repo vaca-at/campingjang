@@ -488,6 +488,8 @@ function doAction(id) {
     spot = spot.nearest ? [...spot].sort((a, b) => Math.hypot(a.x - me.x, a.z - me.z) - Math.hypot(b.x - me.x, b.z - me.z))[0]   // 불꽃놀이: 가장 가까운 자리
       : spot.map((p) => [p, Math.min(99, ...others.map((o) => Math.hypot(o.x - p.x, o.z - p.z)))]).sort((a, b) => b[1] - a[1])[0][0];
   }
+  // 연날리기는 앉아 있으면 그 자리에 앉은 채로 날려요 (걸어가지 않아요)
+  if (id === 'kite' && S.seat != null) spot = null;
   if (spot && S.me.action !== id && spotArrived !== id) {
     const to = new THREE.Vector3(spot.x + (Math.random() - 0.5) * (spot.jx || 0), 0, spot.z);
     S.spotY = spot.y; S.curSpot = spot;
