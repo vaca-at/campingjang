@@ -1715,10 +1715,19 @@ function startCalm() {
   controls.autoRotateSpeed = 0.4;
   document.documentElement.requestFullscreen?.().catch(() => {});
   toast('화면을 누르면 돌아와요');
+  tickCalmClock(); clearInterval(calmClock); calmClock = setInterval(tickCalmClock, 1000);
+}
+// 크게 보기 시계 (소호랩 바탕화면과 같은 코드): 시각 + 날짜 · 함께 있는 사람 수
+let calmClock = 0;
+function tickCalmClock() {
+  const d = new Date();
+  $('#cc-time').textContent = d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+  $('#cc-sub').textContent = `${d.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' })} · ${S.remotes.size + 1}명`;
 }
 function stopCalm() {
   if (!S.calm) return;
   S.calm = false;
+  clearInterval(calmClock);
   document.body.classList.remove('calm');
   controls.autoRotate = false;
   if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
